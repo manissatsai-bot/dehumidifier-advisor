@@ -35,39 +35,71 @@ async function safeFetch(url: string, headers: Record<string, string> = {}): Pro
 
 // ── PTT ──────────────────────────────────────────────────────────────────────
 // Only fetch the search results page — do NOT fetch individual articles (too slow on Vercel)
+function extractPTTLinks(html: string): Array<{ path: string; title: string; date: string }> {
+  const results: Array<{ path: string; title: string; date: string }> = []
+  // Each r-ent block contains a link, title, and date
+  const blockRe = /<div class="r-ent">([\s\S]*?)<\/div>\s*<\/div>/g
+  let m: RegExpExecArray | null
+  while ((m = blockRe.exec(html)) !== null && results.length < 5) {
+    const block = m[1]
+    const linkMatch = block.match(/<a href="(\/bbs\/Appliance\/[^"]+\.html)"[^>]*>([^<]+)<\/a>/)
+    const dateMatch = block.match(/<div class="date">\s*([^<]+)\s*<\/div>/)
+    if (!linkMatch) continue
+    const title = linkMatch[2].trim()
+    if (!title || title.includes('刪除') || title.length < 4) continue
+    results.push({ path: linkMatch[1], title, date: dateMatch?.[1]?.trim() ?? '' })
+  }
+  return results
+}
+
+async function fetchPTTArticle(
+  item: { path: string; title: string; date: string }
+): Promise<RawReview | null> {
+  const html = await safeFetch(`https://www.ptt.cc${item.path}`, { Cookie: 'over18=1' })
+  if (!html) return null
+
+  // Extract push comments (推/噓/→)
+  const pushRe = /<div class="push">[\s\S]*?<span class="f3 push-content">:?\s*([\s\S]*?)<\/span>[\s\S]*?<\/div>/g
+  const pushLines: string[] = []
+  let m: RegExpExecArray | null
+  while ((m = pushRe.exec(html)) !== null && pushLines.length < 15) {
+    const line = stripHtml(m[1]).trim()
+    if (line.length > 5 && line.length < 200) pushLines.push(line)
+  }
+
+  // Also grab main article body (first 300 chars after metadata)
+  let body = ''
+  const bodyMatch = html.match(/<div id="main-content"[^>]*>([\s\S]*?)(?:<div class="push">|<span class="f2">※ 發信站)/)
+  if (bodyMatch) {
+    body = stripHtml(bodyMatch[1].replace(/<div class="article-meta[^"]*"[\s\S]*?<\/div>/g, ''))
+      .slice(0, 300)
+  }
+
+  const snippet = [body, ...pushLines].filter(Boolean).join(' / ').slice(0, 500)
+  if (!snippet) return null
+
+  return {
+    source: 'PTT',
+    title: item.title,
+    snippet,
+    url: `https://www.ptt.cc${item.path}`,
+    date: item.date,
+  }
+}
+
 async function searchPTT(query: string): Promise<RawReview[]> {
   const url = `https://www.ptt.cc/bbs/Appliance/search?q=${encodeURIComponent(query)}`
   const html = await safeFetch(url, { Cookie: 'over18=1' })
   if (!html) return []
 
-  const reviews: RawReview[] = []
+  const links = extractPTTLinks(html)
+  if (links.length === 0) return []
 
-  // Match article links in the Appliance board
-  const linkRe = /<a href="(\/bbs\/Appliance\/[^"]+\.html)"[^>]*>\s*([^<]{3,})\s*<\/a>/g
-  const dateRe = /<div class="date">\s*(\d+\/\d+)\s*<\/div>/g
-
-  const links: Array<{ path: string; title: string }> = []
-  let m: RegExpExecArray | null
-  while ((m = linkRe.exec(html)) !== null && links.length < 6) {
-    const title = stripHtml(m[2]).trim()
-    if (!title || title.includes('刪除') || title.length < 4) continue
-    links.push({ path: m[1], title })
-  }
-
-  const dates: string[] = []
-  while ((m = dateRe.exec(html)) !== null) dates.push(m[1])
-
-  for (let i = 0; i < links.length && reviews.length < 5; i++) {
-    reviews.push({
-      source: 'PTT',
-      title: links[i].title,
-      snippet: links[i].title, // just the title; review-agent will synthesize from it
-      url: `https://www.ptt.cc${links[i].path}`,
-      date: dates[i] ?? '',
-    })
-  }
-
-  return reviews
+  // Fetch top 3 articles in parallel
+  const settled = await Promise.allSettled(links.slice(0, 3).map(fetchPTTArticle))
+  return settled
+    .filter((r): r is PromiseFulfilledResult<RawReview> => r.status === 'fulfilled' && r.value !== null)
+    .map(r => r.value)
 }
 
 // ── Dcard ─────────────────────────────────────────────────────────────────────
