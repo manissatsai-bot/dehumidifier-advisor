@@ -37,17 +37,20 @@ async function safeFetch(url: string, headers: Record<string, string> = {}): Pro
 // Only fetch the search results page — do NOT fetch individual articles (too slow on Vercel)
 function extractPTTLinks(html: string): Array<{ path: string; title: string; date: string }> {
   const results: Array<{ path: string; title: string; date: string }> = []
-  // Each r-ent block contains a link, title, and date
-  const blockRe = /<div class="r-ent">([\s\S]*?)<\/div>\s*<\/div>/g
+  // Directly match article URLs in the Appliance board (format: /bbs/Appliance/M.xxx.A.yyy.html)
+  const linkRe = /<a href="(\/bbs\/Appliance\/M\.[^"]+\.html)"[^>]*>([^<]{3,100})<\/a>/g
   let m: RegExpExecArray | null
-  while ((m = blockRe.exec(html)) !== null && results.length < 5) {
-    const block = m[1]
-    const linkMatch = block.match(/<a href="(\/bbs\/Appliance\/[^"]+\.html)"[^>]*>([^<]+)<\/a>/)
-    const dateMatch = block.match(/<div class="date">\s*([^<]+)\s*<\/div>/)
-    if (!linkMatch) continue
-    const title = linkMatch[2].trim()
-    if (!title || title.includes('刪除') || title.length < 4) continue
-    results.push({ path: linkMatch[1], title, date: dateMatch?.[1]?.trim() ?? '' })
+  while ((m = linkRe.exec(html)) !== null && results.length < 5) {
+    const title = m[2].trim()
+    if (!title || title.includes('刪除') || title.length < 3) continue
+    results.push({ path: m[1], title, date: '' })
+  }
+  // Fill in dates (appear in order matching articles)
+  const dateRe = /<div class="date">\s*(\d+\/\d+)\s*<\/div>/g
+  let di = 0
+  while ((m = dateRe.exec(html)) !== null && di < results.length) {
+    results[di].date = m[1]
+    di++
   }
   return results
 }
@@ -261,6 +264,7 @@ export async function fetchProductReviews(product: Product): Promise<RawReview[]
     }
   }
 
+  console.log(`[reviews] ${product.model_id}: PTT=${all.filter(r=>r.source==='PTT').length} Dcard=${all.filter(r=>r.source==='Dcard').length} YT=${all.filter(r=>r.source==='YouTube').length} total=${all.length}`)
   reviewCache.set(product.id, { data: all, expires: Date.now() + CACHE_TTL })
   return all
 }
