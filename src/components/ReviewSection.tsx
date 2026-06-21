@@ -27,13 +27,7 @@ export function ReviewSection({ reviews }: Props) {
   const { pros, cons, highlights, overall_sentiment, review_count } = reviews
   const hasContent = pros.length > 0 || cons.length > 0 || highlights.length > 0
 
-  if (!hasContent) {
-    return (
-      <div className="rounded-xl border border-dashed border-gray-200 p-4 text-center text-xs text-gray-400">
-        網友評論資料收集中，稍後再試
-      </div>
-    )
-  }
+  if (!hasContent) return null
 
   const cfg = SENTIMENT_CONFIG[overall_sentiment]
 

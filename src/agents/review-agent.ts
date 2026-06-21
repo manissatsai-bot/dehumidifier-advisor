@@ -34,31 +34,32 @@ export async function curateReviews(
 
   const prompt = `你是一個幫消費者分析產品評價的助手。
 
-以下是網友在 PTT、Dcard 及 YouTube 留言討論「${product.name_tw}」或同品牌除濕機的內容：
+以下是網友在 PTT、Dcard 及 YouTube 討論「${product.name_tw}」或同品牌除濕機的標題與內容：
 
 ${reviewBlock}
 
-請從以上評論萃取有用資訊，回傳以下 JSON（只回 JSON，不加其他文字）：
+請從以上資料中萃取有用資訊，回傳以下 JSON（只回 JSON，不加其他文字）：
 
 {
-  "pros": ["優點1（10-20字，附上來源如 PTT/Dcard/YouTube）", "優點2", "優點3"],
-  "cons": ["缺點1（同上附來源）", "缺點2"],
+  "pros": ["優點1（10-25字，標注來源如 PTT/Dcard/YouTube）", "優點2", "優點3"],
+  "cons": ["缺點1（同上）", "缺點2"],
   "highlights": [
     {
       "source": "PTT" 或 "Dcard" 或 "YouTube",
-      "quote": "直接引用原文中最有參考價值的一句話（15-50字）",
-      "sentiment": "positive" / "negative" / "neutral",
+      "quote": "引用原文或標題中最有參考價值的一段話（10-50字）",
+      "sentiment": "positive" 或 "negative" 或 "neutral",
       "url": "對應的來源 URL"
     }
   ],
-  "overall_sentiment": "positive" / "mixed" / "negative"
+  "overall_sentiment": "positive" 或 "mixed" 或 "negative"
 }
 
 規則：
 - pros/cons 最多各 3 項，沒有就空陣列
-- highlights 最多 4 則，盡量涵蓋不同來源，YouTube 留言讚數多的優先
-- quote 必須是原文引用，不是改寫
-- 如果評論內容與除濕機完全無關則忽略
+- highlights 最多 3 則，盡量涵蓋不同來源
+- PTT 資料若只有標題，可以標題作為 quote
+- Dcard 有摘要的話優先引用摘要原文
+- 若評論內容與除濕機完全無關則忽略
 - overall_sentiment 根據整體傾向判斷，資料不足時用 "mixed"`
 
   try {
