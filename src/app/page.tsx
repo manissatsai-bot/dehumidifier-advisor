@@ -1,8 +1,6 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
-import { DecisionBadge } from '@/components/DecisionBadge'
-import { HighlightSummary } from '@/components/HighlightSummary'
 import { ProductCard } from '@/components/ProductCard'
 import { ReviewSection } from '@/components/ReviewSection'
 import type { RecommendationResult, SessionState } from '@/lib/types'
@@ -147,15 +145,7 @@ export default function Home() {
                         <span className="w-4 h-px bg-gray-200 inline-block" />
                       </div>
 
-                      <HighlightSummary product={msg.recommendation.top_product} />
-
-                      <DecisionBadge
-                        signal={msg.recommendation.decision.signal}
-                        label={msg.recommendation.decision.label}
-                        reasons={msg.recommendation.decision.reasons}
-                      />
-
-                      <ProductCard product={msg.recommendation.top_product} rank={1} isTop />
+                      <ProductCard product={msg.recommendation.top_product} rank={1} isTop decision={msg.recommendation.decision} />
 
                       {msg.recommendation.reviews && (
                         <ReviewSection reviews={msg.recommendation.reviews} />

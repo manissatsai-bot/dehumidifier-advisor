@@ -1,9 +1,16 @@
-import type { ScoredProduct } from '@/lib/types'
+import type { ScoredProduct, Decision } from '@/lib/types'
 
 interface Props {
   product: ScoredProduct
   rank: number
   isTop?: boolean
+  decision?: Decision
+}
+
+const DECISION_CONFIG = {
+  GREEN:  { header: 'bg-green-50 border-b border-green-100', icon: '✓', iconCls: 'bg-green-500 text-white', label: 'text-green-800', text: 'text-green-600', dot: 'text-green-400' },
+  YELLOW: { header: 'bg-amber-50 border-b border-amber-100', icon: '~', iconCls: 'bg-amber-400 text-white', label: 'text-amber-800', text: 'text-amber-600', dot: 'text-amber-400' },
+  RED:    { header: 'bg-red-50 border-b border-red-100',     icon: '✕', iconCls: 'bg-red-500 text-white',   label: 'text-red-800',   text: 'text-red-600',   dot: 'text-red-400' },
 }
 
 function getSearchUrls(product: ScoredProduct): Record<string, string> {
@@ -62,11 +69,12 @@ function ScoreBar({ label, value }: { label: string; value: number }) {
   )
 }
 
-export function ProductCard({ product, rank, isTop }: Props) {
+export function ProductCard({ product, rank, isTop, decision }: Props) {
   const { price_analysis: pa } = product
   const timing = TIMING_LABEL[pa.timing] ?? TIMING_LABEL.UNKNOWN
   const deviationSign = pa.deviation_pct > 0 ? '+' : ''
   const energyStyle = ENERGY_STYLE[product.energy_label] ?? { bg: 'bg-gray-50', text: 'text-gray-600', dot: 'text-gray-400' }
+  const dc = decision ? DECISION_CONFIG[decision.signal] : null
 
   return (
     <div className={`rounded-2xl bg-white overflow-hidden transition-shadow ${
@@ -74,6 +82,26 @@ export function ProductCard({ product, rank, isTop }: Props) {
         ? 'border border-indigo-200 shadow-md ring-1 ring-indigo-100'
         : 'border border-gray-200 shadow-sm'
     }`}>
+      {/* Decision band */}
+      {dc && decision && (
+        <div className={`px-4 py-3 ${dc.header}`}>
+          <div className="flex items-center gap-2 mb-1.5">
+            <span className={`w-5 h-5 rounded-full ${dc.iconCls} flex items-center justify-center text-xs font-bold shrink-0`}>
+              {dc.icon}
+            </span>
+            <span className={`text-sm font-bold ${dc.label}`}>{decision.label}</span>
+          </div>
+          <ul className="space-y-0.5 pl-7">
+            {decision.reasons.map((r, i) => (
+              <li key={i} className={`text-xs flex gap-1.5 ${dc.text}`}>
+                <span className={`shrink-0 font-bold ${dc.dot}`}>·</span>
+                {r}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
       {/* Top bar */}
       <div className={`px-5 pt-4 pb-3 ${isTop ? 'bg-gradient-to-r from-indigo-50 to-white' : ''}`}>
         <div className="flex items-start justify-between gap-3">
