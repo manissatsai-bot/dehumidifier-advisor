@@ -12,15 +12,27 @@ type Message =
   | { role: 'assistant'; content: string; recommendation?: RecommendationResult }
 
 const QUICK_PROMPTS = [
-  '我租8坪套房，預算一萬五，主要室內晾衣',
-  '15坪客廳，預算兩萬，梅雨季除濕用',
+  '8坪套房，預算一萬五，室內晾衣',
+  '15坪客廳，預算兩萬，梅雨季除濕',
   '30坪地下室防潮，預算不限',
-  '主臥室8坪，需要超安靜，預算兩萬',
+  '主臥8坪，需要超安靜，預算兩萬',
 ]
 
 const WELCOME: Message = {
   role: 'assistant',
-  content: '你好！我是你的除濕機購買顧問。告訴我你的情況，我幫你分析該買哪台、現在買值不值得。\n\n你可以直接說，例如：「我租8坪套房，預算一萬五，主要室內晾衣」',
+  content: '您好，歡迎使用除濕機選購顧問服務。\n\n請告訴我您的空間坪數與使用需求，我將為您進行專業評估與推薦。',
+}
+
+function AssistantIcon() {
+  return (
+    <div className="w-8 h-8 rounded-full bg-indigo-600 flex items-center justify-center shrink-0 shadow-sm">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M12 2a10 10 0 1 0 10 10" />
+        <path d="M12 6v6l4 2" />
+        <circle cx="19" cy="5" r="3" fill="white" stroke="none" />
+      </svg>
+    </div>
+  )
 }
 
 export default function Home() {
@@ -28,7 +40,7 @@ export default function Home() {
   const [input, setInput] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [session, setSession] = useState<SessionState | undefined>()
-  const [expandedProducts, setExpandedProducts] = useState(false)
+  const [expandedIdx, setExpandedIdx] = useState<number | null>(null)
   const bottomRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -42,7 +54,7 @@ export default function Home() {
     setMessages(prev => [...prev, userMsg])
     setInput('')
     setIsLoading(true)
-    setExpandedProducts(false)
+    setExpandedIdx(null)
 
     try {
       const res = await fetch('/api/analyze', {
@@ -82,100 +94,111 @@ export default function Home() {
     setMessages([WELCOME])
     setSession(undefined)
     setInput('')
-    setExpandedProducts(false)
+    setExpandedIdx(null)
   }
 
   return (
-    <div className="flex flex-col h-screen max-w-2xl mx-auto">
+    <div className="flex flex-col h-screen max-w-2xl mx-auto bg-white shadow-xl">
+
       {/* Header */}
-      <header className="shrink-0 flex items-center justify-between px-4 py-3 border-b bg-white">
-        <div>
-          <h1 className="font-bold text-gray-900">除濕機購買顧問</h1>
-          <p className="text-xs text-gray-400">AI 幫你分析：該買哪台、現在買划算嗎</p>
+      <header className="shrink-0 border-b border-gray-100 bg-white px-5 py-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-indigo-600 flex items-center justify-center shadow-sm">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                <polyline points="9 22 9 12 15 12 15 22"/>
+              </svg>
+            </div>
+            <div>
+              <h1 className="font-bold text-gray-900 text-sm leading-tight">除濕機選購顧問</h1>
+              <p className="text-xs text-gray-400 leading-tight">專業評估 · 即時比價 · AI 推薦</p>
+            </div>
+          </div>
+          <button
+            onClick={handleReset}
+            className="text-xs text-gray-400 hover:text-gray-600 border border-gray-200 hover:border-gray-300 rounded-lg px-3 py-1.5 transition-colors"
+          >
+            重新諮詢
+          </button>
         </div>
-        <button
-          onClick={handleReset}
-          className="text-xs text-gray-400 hover:text-gray-600 border border-gray-200 rounded-lg px-3 py-1.5"
-        >
-          重新開始
-        </button>
       </header>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4 chat-scroll">
+      <div className="flex-1 overflow-y-auto px-4 py-5 space-y-5 chat-scroll bg-slate-50">
         {messages.map((msg, idx) => (
-          <div key={idx} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-            {msg.role === 'assistant' ? (
-              <div className="max-w-full space-y-3">
-                {/* Assistant bubble */}
-                <div className="bg-white border border-gray-200 rounded-2xl rounded-tl-sm px-4 py-3 text-sm text-gray-800 leading-relaxed whitespace-pre-wrap max-w-lg shadow-sm">
+          <div key={idx} className={`flex gap-2.5 msg-enter ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+            {msg.role === 'assistant' && <AssistantIcon />}
+
+            <div className={`${msg.role === 'user' ? 'max-w-xs' : 'max-w-full flex-1'}`}>
+              {msg.role === 'assistant' ? (
+                <div className="space-y-3">
+                  {/* Text bubble */}
+                  <div className="bg-white rounded-2xl rounded-tl-sm px-4 py-3 text-sm text-gray-800 leading-relaxed whitespace-pre-wrap shadow-sm border border-gray-100">
+                    {msg.content}
+                  </div>
+
+                  {/* Recommendation */}
+                  {msg.recommendation && (
+                    <div className="space-y-3">
+                      <div className="text-xs text-gray-400 px-1 flex items-center gap-1.5">
+                        <span className="w-4 h-px bg-gray-200 inline-block" />
+                        根據您的需求：{msg.recommendation.intent_summary}
+                        <span className="w-4 h-px bg-gray-200 inline-block" />
+                      </div>
+
+                      <HighlightSummary product={msg.recommendation.top_product} />
+
+                      <DecisionBadge
+                        signal={msg.recommendation.decision.signal}
+                        label={msg.recommendation.decision.label}
+                        reasons={msg.recommendation.decision.reasons}
+                      />
+
+                      <ProductCard product={msg.recommendation.top_product} rank={1} isTop />
+
+                      {msg.recommendation.reviews && (
+                        <ReviewSection reviews={msg.recommendation.reviews} />
+                      )}
+
+                      {msg.recommendation.all_products.length > 1 && (
+                        <>
+                          <button
+                            onClick={() => setExpandedIdx(expandedIdx === idx ? null : idx)}
+                            className="text-xs text-indigo-500 hover:text-indigo-700 flex items-center gap-1.5 font-medium transition-colors"
+                          >
+                            <span className="w-4 h-px bg-indigo-200 inline-block" />
+                            {expandedIdx === idx
+                              ? '收起其他選項'
+                              : `查看另外 ${msg.recommendation.all_products.length - 1} 個備選方案`}
+                            <span>{expandedIdx === idx ? '↑' : '↓'}</span>
+                          </button>
+                          {expandedIdx === idx && msg.recommendation.all_products.slice(1).map((p, i) => (
+                            <ProductCard key={p.id} product={p} rank={i + 2} />
+                          ))}
+                        </>
+                      )}
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="bg-indigo-600 text-white rounded-2xl rounded-tr-sm px-4 py-3 text-sm shadow-sm leading-relaxed">
                   {msg.content}
                 </div>
-
-                {/* Recommendation cards */}
-                {msg.recommendation && (
-                  <div className="space-y-3">
-                    {/* Intent summary */}
-                    <div className="text-xs text-gray-400 px-1">
-                      根據您的需求：{msg.recommendation.intent_summary}
-                    </div>
-
-                    {/* Highlight summary */}
-                    <HighlightSummary product={msg.recommendation.top_product} />
-
-                    {/* Decision */}
-                    <DecisionBadge
-                      signal={msg.recommendation.decision.signal}
-                      label={msg.recommendation.decision.label}
-                      reasons={msg.recommendation.decision.reasons}
-                    />
-
-                    {/* Top product */}
-                    <ProductCard
-                      product={msg.recommendation.top_product}
-                      rank={1}
-                      isTop
-                    />
-
-                    {/* Community reviews */}
-                    {msg.recommendation.reviews && (
-                      <ReviewSection reviews={msg.recommendation.reviews} />
-                    )}
-
-                    {/* More products toggle */}
-                    {msg.recommendation.all_products.length > 1 && (
-                      <>
-                        <button
-                          onClick={() => setExpandedProducts(v => !v)}
-                          className="text-xs text-indigo-600 hover:text-indigo-800 flex items-center gap-1"
-                        >
-                          {expandedProducts ? '收起' : `查看其他 ${msg.recommendation.all_products.length - 1} 個選項`}
-                          <span>{expandedProducts ? '↑' : '↓'}</span>
-                        </button>
-                        {expandedProducts && msg.recommendation.all_products.slice(1).map((p, i) => (
-                          <ProductCard key={p.id} product={p} rank={i + 2} />
-                        ))}
-                      </>
-                    )}
-                  </div>
-                )}
-              </div>
-            ) : (
-              <div className="bg-indigo-600 text-white rounded-2xl rounded-tr-sm px-4 py-3 text-sm max-w-xs shadow-sm">
-                {msg.content}
-              </div>
-            )}
+              )}
+            </div>
           </div>
         ))}
 
         {/* Loading */}
         {isLoading && (
-          <div className="flex justify-start">
-            <div className="bg-white border border-gray-200 rounded-2xl rounded-tl-sm px-4 py-3 shadow-sm">
+          <div className="flex gap-2.5 justify-start msg-enter">
+            <AssistantIcon />
+            <div className="bg-white border border-gray-100 rounded-2xl rounded-tl-sm px-4 py-3.5 shadow-sm">
               <div className="flex gap-1.5 items-center">
-                <div className="w-2 h-2 bg-gray-300 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-                <div className="w-2 h-2 bg-gray-300 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-                <div className="w-2 h-2 bg-gray-300 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                <div className="w-2 h-2 bg-indigo-300 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                <div className="w-2 h-2 bg-indigo-300 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                <div className="w-2 h-2 bg-indigo-300 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
               </div>
             </div>
           </div>
@@ -186,12 +209,12 @@ export default function Home() {
 
       {/* Quick prompts */}
       {messages.length <= 1 && (
-        <div className="shrink-0 px-4 pb-2 flex gap-2 overflow-x-auto">
+        <div className="shrink-0 px-4 pt-3 pb-1 flex gap-2 overflow-x-auto bg-white border-t border-gray-100">
           {QUICK_PROMPTS.map((p, i) => (
             <button
               key={i}
               onClick={() => sendMessage(p)}
-              className="shrink-0 text-xs bg-white border border-gray-200 rounded-full px-3 py-1.5 text-gray-600 hover:bg-indigo-50 hover:border-indigo-200 hover:text-indigo-700 transition-colors"
+              className="shrink-0 text-xs bg-slate-50 border border-gray-200 rounded-full px-3 py-1.5 text-gray-600 hover:bg-indigo-50 hover:border-indigo-200 hover:text-indigo-700 transition-colors whitespace-nowrap"
             >
               {p}
             </button>
@@ -200,23 +223,23 @@ export default function Home() {
       )}
 
       {/* Input */}
-      <div className="shrink-0 border-t bg-white px-4 py-3">
+      <div className="shrink-0 border-t border-gray-100 bg-white px-4 py-3">
         <form
           onSubmit={e => { e.preventDefault(); sendMessage(input) }}
-          className="flex gap-2"
+          className="flex gap-2 items-end"
         >
           <input
             type="text"
             value={input}
             onChange={e => setInput(e.target.value)}
-            placeholder="說說你的需求..."
+            placeholder="輸入坪數、用途、預算..."
             disabled={isLoading}
-            className="flex-1 border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-indigo-400 focus:ring-1 focus:ring-indigo-200 disabled:bg-gray-50"
+            className="flex-1 border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 disabled:bg-gray-50 disabled:text-gray-400 transition-all bg-slate-50"
           />
           <button
             type="submit"
             disabled={isLoading || !input.trim()}
-            className="bg-indigo-600 text-white rounded-xl px-4 py-2.5 text-sm font-medium hover:bg-indigo-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+            className="bg-indigo-600 text-white rounded-xl px-5 py-2.5 text-sm font-semibold hover:bg-indigo-700 active:bg-indigo-800 disabled:opacity-40 disabled:cursor-not-allowed transition-colors shadow-sm"
           >
             送出
           </button>
