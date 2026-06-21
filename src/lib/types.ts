@@ -149,4 +149,5 @@ export interface SessionState {
   history: Array<{ role: MessageRole; content: string }>
   turns: number
   stage: ConversationStage
+  custom_weights?: Partial<Record<keyof ScoreBreakdown, number>>
 }

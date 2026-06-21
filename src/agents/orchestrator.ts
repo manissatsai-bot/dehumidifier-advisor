@@ -11,7 +11,7 @@ import { regexExtractIntent } from '@/lib/extract-intent'
 import { fetchProductReviews } from '@/lib/review-scraper'
 import type {
   SessionState, RecommendationResult, UserIntent,
-  CuratedReviews, ConversationStage, Product,
+  CuratedReviews, ConversationStage, Product, ScoreBreakdown,
 } from '@/lib/types'
 
 export type OrchestratorResponse =
@@ -32,6 +32,53 @@ function isOffTopic(message: string, session: SessionState): boolean {
 
 function isIntentUnchanged(prev: Partial<UserIntent>, next: Partial<UserIntent>): boolean {
   return JSON.stringify(prev) === JSON.stringify(next)
+}
+
+function isScoreQuestion(message: string): boolean {
+  return /分數怎麼算|怎麼計算|適配分|評分方式|分數是怎|怎麼給分|為什麼.*分|分數.*算法|算法/.test(message)
+}
+
+const DIMENSION_KEYWORDS: Array<{ re: RegExp; dim: keyof ScoreBreakdown }> = [
+  { re: /靜音|噪音|安靜/,         dim: 'noise_level' },
+  { re: /省電|能效|節能|耗電/,     dim: 'energy_efficiency' },
+  { re: /預算|價格|便宜|價錢/,     dim: 'price_fit' },
+  { re: /坪數|空間|大小|坪/,       dim: 'space_fit' },
+  { re: /保固|售後|維修|服務/,     dim: 'after_service' },
+  { re: /耐用|品質|耐久/,          dim: 'durability' },
+  { re: /移動|搬運|輪子|輕便/,     dim: 'portability' },
+  { re: /時機|低點|歷史價|買點/,   dim: 'price_intelligence' },
+  { re: /晾衣|使用情境|用途|場景/, dim: 'usage_fit' },
+]
+const DIMENSION_LABEL: Record<keyof ScoreBreakdown, string> = {
+  space_fit: '空間適配', price_fit: '預算符合', usage_fit: '場景符合',
+  price_intelligence: '價格時機', energy_efficiency: '能源效率',
+  noise_level: '靜音', portability: '移動便利', durability: '耐用度', after_service: '售後服務',
+}
+
+function parseWeightAdjustment(message: string): Partial<Record<keyof ScoreBreakdown, number>> | null {
+  const boost = /比較在乎|很重要|最重要|調高|加重|更重視|優先|注重|最在意/
+  const reduce = /不太在乎|不重要|調低|降低|不考慮|次要/
+  const matched: Partial<Record<keyof ScoreBreakdown, number>> = {}
+  for (const { re, dim } of DIMENSION_KEYWORDS) {
+    if (re.test(message)) {
+      if (boost.test(message)) matched[dim] = 0.35
+      else if (reduce.test(message)) matched[dim] = 0.01
+    }
+  }
+  return Object.keys(matched).length > 0 ? matched : null
+}
+
+function scoreExplanation(): string {
+  return `適配分數（0–100）由 9 個維度加權合計：
+
+• 空間適配 25%：您的坪數與機型適用坪數是否吻合
+• 預算符合 18%：售價佔預算的比例（低於 80% 最高分）
+• 場景符合 18%：晾衣重水箱容量、臥室重靜音、地下室重大容量
+• 價格時機 12%：當前售價在歷史區間的百分位（越接近低點越高）
+• 能源效率 8%：一級能效 100 分，二級 75 分，依序遞減
+• 靜音 5%、移動便利 5%、耐用度 5%、售後服務 4%
+
+若有特別在意的維度，例如「靜音很重要」或「我比較在乎省電」，告訴我，我會調整權重重新計算。`
 }
 
 const USAGE_LABEL: Record<string, string> = {
@@ -162,7 +209,56 @@ export async function orchestrate(
     return { response: { type: 'question', message: msg }, updatedSession }
   }
 
-  // ── Step 4: If already recommended and intent unchanged → ask what they need
+  // ── Step 4: Scoring explanation ──────────────────────────────────────────────
+  if (isScoreQuestion(userMessage)) {
+    const msg = scoreExplanation()
+    const updatedHistory = [...session.history, { role: 'user' as const, content: userMessage }]
+    const updatedSession: SessionState = { ...session, history: updatedHistory.slice(-12), turns: session.turns + 1 }
+    updatedSession.history.push({ role: 'assistant', content: msg })
+    return { response: { type: 'question', message: msg }, updatedSession }
+  }
+
+  // ── Step 4b: Weight adjustment ────────────────────────────────────────────────
+  const weightAdj = parseWeightAdjustment(userMessage)
+  if (weightAdj && session.stage === 'recommend' && session.intent.space && session.intent.usage) {
+    const mergedWeights = { ...(session.custom_weights ?? {}), ...weightAdj }
+    const dimNames = Object.keys(weightAdj).map(k => DIMENSION_LABEL[k as keyof ScoreBreakdown]).join('、')
+    const updatedHistory = [...session.history, { role: 'user' as const, content: userMessage }]
+    const updatedSession: SessionState = { ...session, history: updatedHistory.slice(-12), turns: session.turns + 1, custom_weights: mergedWeights }
+    // Re-run recommendation with new weights — fall through to recommend stage below
+    // (update session.custom_weights so scoring picks it up)
+    const rerunMsg = `了解，已調高「${dimNames}」的權重，重新為您計算推薦。`
+    updatedSession.stage = 'recommend'
+    // We'll let the recommend flow below handle it, but first push the acknowledgment
+    // Actually just re-run inline here
+    const adjBudget = updatedSession.intent.budget ?? 100000
+    const adjIntent: UserIntent = { ...updatedSession.intent, space: updatedSession.intent.space!, usage: updatedSession.intent.usage!, budget: adjBudget }
+    const adjFiltered = filterProducts(allProducts, adjIntent)
+    if (adjFiltered.length > 0) {
+      const adjPriceAnalyses = new Map(adjFiltered.map(p => [p.id, analyzePrices(p.current_price, getPriceHistory(p.id), p.capacity_liters)]))
+      const adjScored = scoreProducts(adjFiltered, adjIntent, adjPriceAnalyses, mergedWeights)
+      const adjTop3 = adjScored.slice(0, 3)
+      const adjTop = adjTop3[0]
+      const adjDecision = makeDecision(adjTop, adjIntent)
+      const adjRawReviews = await fetchProductReviews(adjTop)
+      const adjEmptyReviews: CuratedReviews = { pros: [], cons: [], highlights: [], overall_sentiment: 'unknown', review_count: 0 }
+      const adjReviews = adjRawReviews.length > 0 ? await curateReviews(adjTop, adjRawReviews) : adjEmptyReviews
+      const adjExplanation = await generateExplanation(adjTop, adjDecision, adjIntent, adjTop3, adjReviews)
+      const adjBudgetLabel = adjBudget >= 100000 ? '不限' : `$${adjBudget.toLocaleString()}`
+      const result: RecommendationResult = {
+        top_product: adjTop,
+        all_products: adjTop3,
+        decision: adjDecision,
+        explanation: rerunMsg + '\n\n' + adjExplanation,
+        intent_summary: `${adjIntent.space}坪・預算 ${adjBudgetLabel}・${USAGE_LABEL[adjIntent.usage!] ?? adjIntent.usage}（已調整：${dimNames}）`,
+        reviews: adjReviews,
+      }
+      updatedSession.history.push({ role: 'assistant', content: result.explanation })
+      return { response: { type: 'recommendation', data: result }, updatedSession }
+    }
+  }
+
+  // ── Step 5: If already recommended and intent unchanged → ask what they need
   if (session.stage === 'recommend' && isIntentUnchanged(session.intent, updatedIntent)) {
     const needsRec = /再推薦|重新推薦|換一台|其他推薦|其他機型|再推|重推|評價|評論|網友|ptt|dcard/.test(userMessage)
     if (!needsRec) {
@@ -264,7 +360,7 @@ export async function orchestrate(
     ])
   )
 
-  const scored = scoreProducts(filtered, intent, priceAnalyses)
+  const scored = scoreProducts(filtered, intent, priceAnalyses, session.custom_weights)
   const top3 = scored.slice(0, 3)
   const topProduct = top3[0]
   const decision = makeDecision(topProduct, intent)

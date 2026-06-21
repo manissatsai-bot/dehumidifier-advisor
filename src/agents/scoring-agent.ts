@@ -95,9 +95,20 @@ function scoreAfterService(quality: string, warrantyYears: number): number {
 export function scoreProducts(
   products: Array<Product & { warnings: string[] }>,
   intent: UserIntent,
-  priceAnalyses: Map<string, PriceAnalysis>
+  priceAnalyses: Map<string, PriceAnalysis>,
+  customWeights?: Partial<Record<keyof ScoreBreakdown, number>>
 ): ScoredProduct[] {
   const { space = 10, budget = 20000, usage, mobility, noise_sensitive } = intent
+
+  // Merge and re-normalize weights
+  let weights = { ...WEIGHTS }
+  if (customWeights && Object.keys(customWeights).length > 0) {
+    weights = { ...weights, ...customWeights }
+    const total = Object.values(weights).reduce((a, b) => a + b, 0)
+    for (const k of Object.keys(weights) as Array<keyof ScoreBreakdown>) {
+      weights[k] = weights[k] / total
+    }
+  }
 
   return products.map(product => {
     const priceAnalysis = priceAnalyses.get(product.id)!
@@ -115,7 +126,7 @@ export function scoreProducts(
     }
 
     const totalScore = Object.entries(breakdown).reduce(
-      (sum, [key, val]) => sum + val * WEIGHTS[key as keyof ScoreBreakdown],
+      (sum, [key, val]) => sum + val * weights[key as keyof ScoreBreakdown],
       0
     )
 

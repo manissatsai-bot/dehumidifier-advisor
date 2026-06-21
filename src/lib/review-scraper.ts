@@ -97,7 +97,12 @@ async function fetchMobile01Article(item: { path: string; title: string }): Prom
 
 async function searchMobile01(query: string): Promise<RawReview[]> {
   const url = `https://www.mobile01.com/search.php?q=${encodeURIComponent(query)}&s=${encodeURIComponent(query)}`
-  const html = await safeFetch(url)
+  const html = await safeFetch(url, {
+    Referer: 'https://www.mobile01.com/',
+    Origin: 'https://www.mobile01.com',
+    'Sec-Fetch-Site': 'same-origin',
+    'Sec-Fetch-Mode': 'navigate',
+  })
   if (!html) {
     console.log(`[Mobile01] fetch failed for query="${query}"`)
     return []
