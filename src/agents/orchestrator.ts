@@ -4,14 +4,12 @@ import { analyzePrices } from './price-agent'
 import { scoreProducts } from './scoring-agent'
 import { makeDecision } from './decision-agent'
 import { generateExplanation } from './explanation-agent'
-import { curateReviews } from './review-agent'
 import { compareAndDecide } from './comparison-agent'
 import { getAllProducts, getPriceHistory } from '@/lib/db'
 import { regexExtractIntent } from '@/lib/extract-intent'
-import { fetchProductReviews } from '@/lib/review-scraper'
 import type {
   SessionState, RecommendationResult, UserIntent,
-  CuratedReviews, ConversationStage, Product, ScoreBreakdown,
+  ConversationStage, Product, ScoreBreakdown,
 } from '@/lib/types'
 
 export type OrchestratorResponse =
@@ -240,10 +238,7 @@ export async function orchestrate(
       const adjTop3 = adjScored.slice(0, 3)
       const adjTop = adjTop3[0]
       const adjDecision = makeDecision(adjTop, adjIntent)
-      const adjRawReviews = await fetchProductReviews(adjTop)
-      const adjEmptyReviews: CuratedReviews = { pros: [], cons: [], highlights: [], overall_sentiment: 'unknown', review_count: 0 }
-      const adjReviews = adjRawReviews.length > 0 ? await curateReviews(adjTop, adjRawReviews) : adjEmptyReviews
-      const adjExplanation = await generateExplanation(adjTop, adjDecision, adjIntent, adjTop3, adjReviews)
+      const adjExplanation = await generateExplanation(adjTop, adjDecision, adjIntent, adjTop3)
       const adjBudgetLabel = adjBudget >= 100000 ? '不限' : `$${adjBudget.toLocaleString()}`
       const result: RecommendationResult = {
         top_product: adjTop,
@@ -251,7 +246,6 @@ export async function orchestrate(
         decision: adjDecision,
         explanation: rerunMsg + '\n\n' + adjExplanation,
         intent_summary: `${adjIntent.space}坪・預算 ${adjBudgetLabel}・${USAGE_LABEL[adjIntent.usage!] ?? adjIntent.usage}（已調整：${dimNames}）`,
-        reviews: adjReviews,
       }
       updatedSession.history.push({ role: 'assistant', content: result.explanation })
       return { response: { type: 'recommendation', data: result }, updatedSession }
@@ -365,16 +359,7 @@ export async function orchestrate(
   const topProduct = top3[0]
   const decision = makeDecision(topProduct, intent)
 
-  const rawReviews = await fetchProductReviews(topProduct)
-  const emptyReviews: CuratedReviews = {
-    pros: [], cons: [], highlights: [],
-    overall_sentiment: 'unknown', review_count: 0,
-  }
-  const reviews = rawReviews.length > 0
-    ? await curateReviews(topProduct, rawReviews)
-    : emptyReviews
-
-  const explanation = await generateExplanation(topProduct, decision, intent, top3, reviews)
+  const explanation = await generateExplanation(topProduct, decision, intent, top3)
 
   const budgetLabel = budget >= 100000 ? '不限' : `$${budget.toLocaleString()}`
   const intentSummary = `${intent.space}坪・預算 ${budgetLabel}・${USAGE_LABEL[intent.usage!] ?? intent.usage}`
@@ -385,7 +370,6 @@ export async function orchestrate(
     decision,
     explanation,
     intent_summary: intentSummary,
-    reviews,
   }
 
   updatedSession.history.push({ role: 'assistant', content: explanation })

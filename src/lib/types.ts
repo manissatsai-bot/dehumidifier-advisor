@@ -130,7 +130,7 @@ export interface RecommendationResult {
   decision: Decision
   explanation: string
   intent_summary: string
-  reviews: CuratedReviews
+  reviews?: CuratedReviews
 }
 
 export type MessageRole = 'user' | 'assistant'

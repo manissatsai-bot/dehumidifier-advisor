@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from 'react'
 import { DecisionBadge } from '@/components/DecisionBadge'
 import { ProductCard } from '@/components/ProductCard'
 import { ReviewSection } from '@/components/ReviewSection'
-import type { RecommendationResult, SessionState } from '@/lib/types'
+import type { RecommendationResult, SessionState, CuratedReviews, ScoredProduct } from '@/lib/types'
 
 type Message =
   | { role: 'user'; content: string }
@@ -40,6 +40,8 @@ export default function Home() {
   const [isLoading, setIsLoading] = useState(false)
   const [session, setSession] = useState<SessionState | undefined>()
   const [expandedIdx, setExpandedIdx] = useState<number | null>(null)
+  // reviews keyed by message index: undefined = not fetched, null = failed/none, CuratedReviews = loaded
+  const [reviewsMap, setReviewsMap] = useState<Map<number, CuratedReviews | null | 'loading'>>(new Map())
   const bottomRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -74,11 +76,19 @@ export default function Home() {
       if (data.type === 'question') {
         setMessages(prev => [...prev, { role: 'assistant', content: data.message! }])
       } else if (data.type === 'recommendation') {
-        setMessages(prev => [...prev, {
-          role: 'assistant',
-          content: data.data!.explanation,
-          recommendation: data.data,
-        }])
+        // message goes at index: 1 (welcome) + existing user+assistant pairs + 1 (user we just added)
+        // capture via functional update
+        let recMsgIdx = -1
+        setMessages(prev => {
+          recMsgIdx = prev.length
+          return [...prev, {
+            role: 'assistant' as const,
+            content: data.data!.explanation,
+            recommendation: data.data,
+          }]
+        })
+        // kick off async review fetch; recMsgIdx is set synchronously inside the updater
+        setTimeout(() => fetchReviewsForMsg(data.data!.top_product, recMsgIdx), 0)
       } else {
         setMessages(prev => [...prev, { role: 'assistant', content: data.message ?? '發生錯誤' }])
       }
@@ -89,11 +99,27 @@ export default function Home() {
     }
   }
 
+  async function fetchReviewsForMsg(product: ScoredProduct, msgIdx: number) {
+    setReviewsMap(prev => new Map(prev).set(msgIdx, 'loading'))
+    try {
+      const res = await fetch('/api/reviews', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ product }),
+      })
+      const data = await res.json() as { reviews: CuratedReviews | null }
+      setReviewsMap(prev => new Map(prev).set(msgIdx, data.reviews))
+    } catch {
+      setReviewsMap(prev => new Map(prev).set(msgIdx, null))
+    }
+  }
+
   function handleReset() {
     setMessages([WELCOME])
     setSession(undefined)
     setInput('')
     setExpandedIdx(null)
+    setReviewsMap(new Map())
   }
 
   return (
@@ -155,9 +181,17 @@ export default function Home() {
                         reasons={msg.recommendation.decision.reasons}
                       />
 
-                      {msg.recommendation.reviews && (
-                        <ReviewSection reviews={msg.recommendation.reviews} />
-                      )}
+                      {(() => {
+                        const rv = reviewsMap.get(idx)
+                        if (rv === 'loading') return (
+                          <div className="text-xs text-gray-400 px-1 py-2 flex items-center gap-1.5">
+                            <div className="w-1.5 h-1.5 bg-gray-300 rounded-full animate-pulse" />
+                            討論區評論載入中...
+                          </div>
+                        )
+                        if (rv) return <ReviewSection reviews={rv} />
+                        return null
+                      })()}
 
                       {/* 4. 備選方案 */}
                       {msg.recommendation.all_products.length > 1 && (
