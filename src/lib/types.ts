@@ -95,7 +95,7 @@ export interface Decision {
   reasons: string[]
 }
 
-export type ReviewSource = 'PTT' | 'Dcard' | 'YouTube'
+export type ReviewSource = 'PTT' | 'Dcard' | 'YouTube' | 'Mobile01'
 
 export interface RawReview {
   source: ReviewSource

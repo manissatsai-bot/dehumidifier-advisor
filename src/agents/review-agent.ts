@@ -34,7 +34,7 @@ export async function curateReviews(
 
   const prompt = `你是一個幫消費者分析產品評價的助手。
 
-以下是網友在 PTT、Dcard 及 YouTube 討論「${product.name_tw}」或同品牌除濕機的標題與內容：
+以下是網友在 Mobile01、Dcard 及 YouTube 討論「${product.name_tw}」或同品牌除濕機的標題與內容：
 
 ${reviewBlock}
 
@@ -45,7 +45,7 @@ ${reviewBlock}
   "cons": ["缺點1（同上）", "缺點2"],
   "highlights": [
     {
-      "source": "PTT" 或 "Dcard" 或 "YouTube",
+      "source": "Mobile01" 或 "Dcard" 或 "YouTube",
       "quote": "引用原文或標題中最有參考價值的一段話（10-50字）",
       "sentiment": "positive" 或 "negative" 或 "neutral",
       "url": "對應的來源 URL"
@@ -57,7 +57,7 @@ ${reviewBlock}
 規則：
 - pros/cons 最多各 3 項，沒有就空陣列
 - highlights 最多 3 則，盡量涵蓋不同來源
-- PTT 資料若只有標題，可以標題作為 quote
+- Mobile01 資料若摘要不完整，可用標題作為 quote
 - Dcard 有摘要的話優先引用摘要原文
 - 若評論內容與除濕機完全無關則忽略
 - overall_sentiment 根據整體傾向判斷，資料不足時用 "mixed"`

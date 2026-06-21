@@ -12,9 +12,10 @@ const SENTIMENT_CONFIG = {
 }
 
 const SOURCE_BADGE: Record<string, string> = {
-  PTT:     'bg-orange-100 text-orange-700',
-  Dcard:   'bg-blue-100 text-blue-700',
-  YouTube: 'bg-red-100 text-red-700',
+  PTT:      'bg-orange-100 text-orange-700',
+  Mobile01: 'bg-indigo-100 text-indigo-700',
+  Dcard:    'bg-blue-100 text-blue-700',
+  YouTube:  'bg-red-100 text-red-700',
 }
 
 const QUOTE_SENTIMENT_ICON: Record<string, string> = {
@@ -35,7 +36,7 @@ export function ReviewSection({ reviews }: Props) {
     <div className="space-y-3">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <h4 className="text-sm font-semibold text-gray-700">PTT / Dcard 網友評價</h4>
+        <h4 className="text-sm font-semibold text-gray-700">討論區網友評價</h4>
         <div className="flex items-center gap-2">
           <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${cfg.bg} ${cfg.text} border ${cfg.border}`}>
             {cfg.label}

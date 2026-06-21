@@ -33,92 +33,85 @@ async function safeFetch(url: string, headers: Record<string, string> = {}): Pro
   }
 }
 
-// ── PTT ──────────────────────────────────────────────────────────────────────
-// Only fetch the search results page — do NOT fetch individual articles (too slow on Vercel)
-function extractPTTLinks(html: string): Array<{ path: string; title: string; date: string }> {
-  const results: Array<{ path: string; title: string; date: string }> = []
-  // Directly match article URLs in the Appliance board (format: /bbs/Appliance/M.xxx.A.yyy.html)
-  const linkRe = /<a href="(\/bbs\/Appliance\/M\.[^"]+\.html)"[^>]*>([^<]{3,100})<\/a>/g
+// ── Mobile01 ─────────────────────────────────────────────────────────────────
+function extractMobile01Links(html: string): Array<{ path: string; title: string }> {
+  const results: Array<{ path: string; title: string }> = []
+  // Mobile01 article links: /topicdetail.php?f=NUMBER&t=NUMBER
+  const linkRe = /href="(\/topicdetail\.php\?f=\d+&(?:amp;)?t=\d+[^"]*)"[^>]*>([^<]{5,120})</g
   let m: RegExpExecArray | null
-  while ((m = linkRe.exec(html)) !== null && results.length < 5) {
-    const title = m[2].trim()
-    if (!title || title.includes('刪除') || title.length < 3) continue
-    results.push({ path: m[1], title, date: '' })
-  }
-  // Fill in dates (appear in order matching articles)
-  const dateRe = /<div class="date">\s*(\d+\/\d+)\s*<\/div>/g
-  let di = 0
-  while ((m = dateRe.exec(html)) !== null && di < results.length) {
-    results[di].date = m[1]
-    di++
+  while ((m = linkRe.exec(html)) !== null && results.length < 6) {
+    const path = m[1].replace(/&amp;/g, '&')
+    const title = stripHtml(m[2]).trim()
+    if (title.length < 4) continue
+    results.push({ path, title })
   }
   return results
 }
 
-async function fetchPTTArticle(
-  item: { path: string; title: string; date: string }
-): Promise<RawReview | null> {
-  const html = await safeFetch(`https://www.ptt.cc${item.path}`, { Cookie: 'over18=1' })
+async function fetchMobile01Article(item: { path: string; title: string }): Promise<RawReview | null> {
+  const url = `https://www.mobile01.com${item.path}`
+  const html = await safeFetch(url)
   if (!html) return null
 
-  // Extract push comments (推/噓/→)
-  const pushRe = /<div class="push">[\s\S]*?<span class="f3 push-content">:?\s*([\s\S]*?)<\/span>[\s\S]*?<\/div>/g
-  const pushLines: string[] = []
+  // Strip scripts/styles/nav
+  const cleaned = html
+    .replace(/<script[\s\S]*?<\/script>/gi, '')
+    .replace(/<style[\s\S]*?<\/style>/gi, '')
+
+  // Main article body — first large text block
+  const texts: string[] = []
+  const paraRe = /<(?:p|div)[^>]*class="[^"]*(?:l-article|articleContent|content)[^"]*"[^>]*>([\s\S]{30,1000}?)<\/(?:p|div)>/gi
   let m: RegExpExecArray | null
-  while ((m = pushRe.exec(html)) !== null && pushLines.length < 15) {
-    const line = stripHtml(m[1]).trim()
-    if (line.length > 5 && line.length < 200) pushLines.push(line)
+  while ((m = paraRe.exec(cleaned)) !== null && texts.length < 3) {
+    const t = stripHtml(m[1]).trim()
+    if (t.length > 20) texts.push(t.slice(0, 300))
   }
 
-  // Also grab main article body (first 300 chars after metadata)
-  let body = ''
-  const bodyMatch = html.match(/<div id="main-content"[^>]*>([\s\S]*?)(?:<div class="push">|<span class="f2">※ 發信站)/)
-  if (bodyMatch) {
-    body = stripHtml(bodyMatch[1].replace(/<div class="article-meta[^"]*"[\s\S]*?<\/div>/g, ''))
-      .slice(0, 300)
+  // Reply/comment blocks
+  const replyRe = /<(?:div|p)[^>]*class="[^"]*(?:reply|comment|l-reply)[^"]*"[^>]*>([\s\S]{10,400}?)<\/(?:div|p)>/gi
+  while ((m = replyRe.exec(cleaned)) !== null && texts.length < 12) {
+    const t = stripHtml(m[1]).trim()
+    if (t.length > 10 && t.length < 300) texts.push(t)
   }
 
-  const snippet = [body, ...pushLines].filter(Boolean).join(' / ').slice(0, 500)
-  if (!snippet) return null
-
-  return {
-    source: 'PTT',
-    title: item.title,
-    snippet,
-    url: `https://www.ptt.cc${item.path}`,
-    date: item.date,
-  }
-}
-
-async function searchPTT(query: string): Promise<RawReview[]> {
-  const url = `https://www.ptt.cc/bbs/Appliance/search?q=${encodeURIComponent(query)}`
-  const html = await safeFetch(url, { Cookie: 'over18=1' })
-  if (!html) {
-    console.log(`[PTT] fetch failed for query="${query}"`)
-    return []
-  }
-
-  const links = extractPTTLinks(html)
-  console.log(`[PTT] query="${query}" htmlLen=${html.length} links=${links.length}`)
-
-  // Fallback: if search returned nothing, scrape board index for recent articles
-  if (links.length === 0) {
-    const indexHtml = await safeFetch('https://www.ptt.cc/bbs/Appliance/index.html', { Cookie: 'over18=1' })
-    if (indexHtml) {
-      const indexLinks = extractPTTLinks(indexHtml)
-      console.log(`[PTT] board index fallback: links=${indexLinks.length}`)
-      links.push(...indexLinks.slice(0, 3))
+  // Fallback: grab all <p> text if nothing matched
+  if (texts.length === 0) {
+    const pRe = /<p[^>]*>([\s\S]{15,300}?)<\/p>/g
+    while ((m = pRe.exec(cleaned)) !== null && texts.length < 8) {
+      const t = stripHtml(m[1]).trim()
+      if (t.length > 15) texts.push(t)
     }
   }
 
+  const snippet = texts.join(' / ').slice(0, 600)
+  if (!snippet || snippet.length < 20) return null
+
+  return {
+    source: 'Mobile01',
+    title: item.title,
+    snippet,
+    url,
+    date: '',
+  }
+}
+
+async function searchMobile01(query: string): Promise<RawReview[]> {
+  const url = `https://www.mobile01.com/search.php?q=${encodeURIComponent(query)}&s=${encodeURIComponent(query)}`
+  const html = await safeFetch(url)
+  if (!html) {
+    console.log(`[Mobile01] fetch failed for query="${query}"`)
+    return []
+  }
+
+  const links = extractMobile01Links(html)
+  console.log(`[Mobile01] query="${query}" htmlLen=${html.length} links=${links.length}`)
   if (links.length === 0) return []
 
-  // Fetch top 3 articles in parallel
-  const settled = await Promise.allSettled(links.slice(0, 3).map(fetchPTTArticle))
+  const settled = await Promise.allSettled(links.slice(0, 3).map(fetchMobile01Article))
   const results = settled
     .filter((r): r is PromiseFulfilledResult<RawReview> => r.status === 'fulfilled' && r.value !== null)
     .map(r => r.value)
-  console.log(`[PTT] articles fetched=${results.length}`)
+  console.log(`[Mobile01] articles fetched=${results.length}`)
   return results
 }
 
@@ -255,13 +248,12 @@ export async function fetchProductReviews(product: Product): Promise<RawReview[]
 
   const youtubeKey = process.env.YOUTUBE_API_KEY
 
-  // PTT: search by brand (model IDs rarely discussed on PTT)
-  // Dcard: search by model then brand
+  // Mobile01 + Dcard: search by brand (more discussed than specific model IDs)
   const tasks = [
-    searchPTT(`${brandTW} 除濕機 推薦`),
-    searchPTT(`${brandTW} 除濕機 開箱`),
-    searchDcard(`${product.model_id} 除濕機`),
+    searchMobile01(`${brandTW} 除濕機 推薦`),
+    searchMobile01(`${brandTW} 除濕機 開箱`),
     searchDcard(`${brandTW} 除濕機 推薦`),
+    searchDcard(`${product.model_id} 除濕機`),
     ...(youtubeKey ? [
       searchYouTube(`${product.model_id} 除濕機 開箱評測`, youtubeKey),
       searchYouTube(`${brandTW} 除濕機 推薦 ${new Date().getFullYear()}`, youtubeKey),
@@ -285,7 +277,7 @@ export async function fetchProductReviews(product: Product): Promise<RawReview[]
     }
   }
 
-  console.log(`[reviews] ${product.model_id}: PTT=${all.filter(r=>r.source==='PTT').length} Dcard=${all.filter(r=>r.source==='Dcard').length} YT=${all.filter(r=>r.source==='YouTube').length} total=${all.length}`)
+  console.log(`[reviews] ${product.model_id}: Mobile01=${all.filter(r=>r.source==='Mobile01').length} Dcard=${all.filter(r=>r.source==='Dcard').length} YT=${all.filter(r=>r.source==='YouTube').length} total=${all.length}`)
   reviewCache.set(product.id, { data: all, expires: Date.now() + CACHE_TTL })
   return all
 }
