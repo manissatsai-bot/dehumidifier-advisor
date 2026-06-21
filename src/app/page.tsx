@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react'
 import { DecisionBadge } from '@/components/DecisionBadge'
+import { HighlightSummary } from '@/components/HighlightSummary'
 import { ProductCard } from '@/components/ProductCard'
 import { ReviewSection } from '@/components/ReviewSection'
 import type { RecommendationResult, SessionState } from '@/lib/types'
@@ -118,6 +119,9 @@ export default function Home() {
                     <div className="text-xs text-gray-400 px-1">
                       根據您的需求：{msg.recommendation.intent_summary}
                     </div>
+
+                    {/* Highlight summary */}
+                    <HighlightSummary product={msg.recommendation.top_product} />
 
                     {/* Decision */}
                     <DecisionBadge
