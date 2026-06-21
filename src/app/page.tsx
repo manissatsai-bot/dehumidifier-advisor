@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
+import { DecisionBadge } from '@/components/DecisionBadge'
 import { ProductCard } from '@/components/ProductCard'
 import { ReviewSection } from '@/components/ReviewSection'
 import type { RecommendationResult, SessionState } from '@/lib/types'
@@ -131,13 +132,7 @@ export default function Home() {
             <div className={`${msg.role === 'user' ? 'max-w-xs' : 'max-w-full flex-1'}`}>
               {msg.role === 'assistant' ? (
                 <div className="space-y-3">
-                  {/* Text bubble */}
-                  <div className="bg-white rounded-2xl rounded-tl-sm px-4 py-3 text-sm text-gray-800 leading-relaxed whitespace-pre-wrap shadow-sm border border-gray-100">
-                    {msg.content}
-                  </div>
-
-                  {/* Recommendation */}
-                  {msg.recommendation && (
+                  {msg.recommendation ? (
                     <div className="space-y-3">
                       <div className="text-xs text-gray-400 px-1 flex items-center gap-1.5">
                         <span className="w-4 h-px bg-gray-200 inline-block" />
@@ -145,12 +140,26 @@ export default function Home() {
                         <span className="w-4 h-px bg-gray-200 inline-block" />
                       </div>
 
-                      <ProductCard product={msg.recommendation.top_product} rank={1} isTop decision={msg.recommendation.decision} />
+                      {/* 1. 推薦機型 */}
+                      <ProductCard product={msg.recommendation.top_product} rank={1} isTop />
+
+                      {/* 2. 推薦理由 */}
+                      <div className="bg-white rounded-2xl rounded-tl-sm px-4 py-3 text-sm text-gray-800 leading-relaxed whitespace-pre-wrap shadow-sm border border-gray-100">
+                        {msg.content}
+                      </div>
+
+                      {/* 3. 歷史價格 / 購買時機 */}
+                      <DecisionBadge
+                        signal={msg.recommendation.decision.signal}
+                        label={msg.recommendation.decision.label}
+                        reasons={msg.recommendation.decision.reasons}
+                      />
 
                       {msg.recommendation.reviews && (
                         <ReviewSection reviews={msg.recommendation.reviews} />
                       )}
 
+                      {/* 4. 備選方案 */}
                       {msg.recommendation.all_products.length > 1 && (
                         <>
                           <button
@@ -168,6 +177,11 @@ export default function Home() {
                           ))}
                         </>
                       )}
+                    </div>
+                  ) : (
+                    /* 一般對話文字泡泡 */
+                    <div className="bg-white rounded-2xl rounded-tl-sm px-4 py-3 text-sm text-gray-800 leading-relaxed whitespace-pre-wrap shadow-sm border border-gray-100">
+                      {msg.content}
                     </div>
                   )}
                 </div>
