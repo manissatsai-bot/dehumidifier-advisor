@@ -23,6 +23,17 @@ function isComparisonRequest(message: string): boolean {
   return /猶豫|糾結|難選|不知道選哪|哪台好|哪個好|哪台比較|哪個比較|幫我選|幫我決定|比較一下|差在哪|有什麼差|選哪台|選哪個|推薦哪一|到底選/.test(message)
 }
 
+const ON_TOPIC_RE = /除濕|除溼|防潮|晾衣|乾燥|坪|公升|預算|日立|國際牌|panasonic|三菱|大金|聲寶|三洋|東芝|能效|噪音|靜音|保固|型號|機型|評價|推薦|比較|買|選購|多少錢|幾坪|幾升|臥室|客廳|地下室|儲藏|梅雨|潮濕/i
+
+function isOffTopic(message: string, session: SessionState): boolean {
+  if (session.intent.space || session.intent.usage) return false
+  return !ON_TOPIC_RE.test(message)
+}
+
+function isIntentUnchanged(prev: Partial<UserIntent>, next: Partial<UserIntent>): boolean {
+  return JSON.stringify(prev) === JSON.stringify(next)
+}
+
 const USAGE_LABEL: Record<string, string> = {
   dry_clothes: '室內晾衣', dehumidify: '梅雨除濕',
   basement: '地下室防潮', bedroom: '臥室使用',
@@ -135,7 +146,37 @@ export async function orchestrate(
     }
   }
 
-  // ── Step 3: Update session ────────────────────────────────────────────────
+  // ── Step 3: Off-topic check ───────────────────────────────────────────────
+  if (isOffTopic(userMessage, session)) {
+    const msg = `不好意思，本服務專門協助您選購除濕機。
+
+請告訴我您的使用情境，例如：
+• 空間坪數（客廳15坪、臥室8坪、地下室30坪）
+• 主要用途（梅雨除濕、室內晾衣、防潮）
+• 預算範圍（選填）
+
+我將為您評估並推薦最適合的機型。`
+    const updatedHistory = [...session.history, { role: 'user' as const, content: userMessage }]
+    const updatedSession: SessionState = { ...session, history: updatedHistory.slice(-12), turns: session.turns + 1 }
+    updatedSession.history.push({ role: 'assistant', content: msg })
+    return { response: { type: 'question', message: msg }, updatedSession }
+  }
+
+  // ── Step 4: If already recommended and intent unchanged → ask what they need
+  if (session.stage === 'recommend' && isIntentUnchanged(session.intent, updatedIntent)) {
+    const needsRec = /再推薦|重新推薦|換一台|其他推薦|其他機型|再推|重推/.test(userMessage)
+    if (!needsRec) {
+      const msg = `請問您還有什麼疑問，或是想調整需求（坪數、預算、用途）嗎？
+
+若想重新查詢其他機型，請告訴我新的需求條件。`
+      const updatedHistory = [...session.history, { role: 'user' as const, content: userMessage }]
+      const updatedSession: SessionState = { ...session, history: updatedHistory.slice(-12), turns: session.turns + 1 }
+      updatedSession.history.push({ role: 'assistant', content: msg })
+      return { response: { type: 'question', message: msg }, updatedSession }
+    }
+  }
+
+  // ── Step 5: Update session ────────────────────────────────────────────────
   const updatedHistory = [
     ...session.history,
     { role: 'user' as const, content: userMessage },
