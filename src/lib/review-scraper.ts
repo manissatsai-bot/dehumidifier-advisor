@@ -93,16 +93,33 @@ async function fetchPTTArticle(
 async function searchPTT(query: string): Promise<RawReview[]> {
   const url = `https://www.ptt.cc/bbs/Appliance/search?q=${encodeURIComponent(query)}`
   const html = await safeFetch(url, { Cookie: 'over18=1' })
-  if (!html) return []
+  if (!html) {
+    console.log(`[PTT] fetch failed for query="${query}"`)
+    return []
+  }
 
   const links = extractPTTLinks(html)
+  console.log(`[PTT] query="${query}" htmlLen=${html.length} links=${links.length}`)
+
+  // Fallback: if search returned nothing, scrape board index for recent articles
+  if (links.length === 0) {
+    const indexHtml = await safeFetch('https://www.ptt.cc/bbs/Appliance/index.html', { Cookie: 'over18=1' })
+    if (indexHtml) {
+      const indexLinks = extractPTTLinks(indexHtml)
+      console.log(`[PTT] board index fallback: links=${indexLinks.length}`)
+      links.push(...indexLinks.slice(0, 3))
+    }
+  }
+
   if (links.length === 0) return []
 
   // Fetch top 3 articles in parallel
   const settled = await Promise.allSettled(links.slice(0, 3).map(fetchPTTArticle))
-  return settled
+  const results = settled
     .filter((r): r is PromiseFulfilledResult<RawReview> => r.status === 'fulfilled' && r.value !== null)
     .map(r => r.value)
+  console.log(`[PTT] articles fetched=${results.length}`)
+  return results
 }
 
 // ── Dcard ─────────────────────────────────────────────────────────────────────
@@ -114,7 +131,11 @@ async function searchDcard(query: string): Promise<RawReview[]> {
     Accept: 'application/json, text/plain, */*',
     'X-Requested-With': 'XMLHttpRequest',
   })
-  if (!json) return []
+  if (!json) {
+    console.log(`[Dcard] fetch failed for query="${query}"`)
+    return []
+  }
+  console.log(`[Dcard] query="${query}" responseLen=${json.length} preview=${json.slice(0, 80)}`)
 
   try {
     const data = JSON.parse(json) as Array<{

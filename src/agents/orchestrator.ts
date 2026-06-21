@@ -164,7 +164,7 @@ export async function orchestrate(
 
   // ── Step 4: If already recommended and intent unchanged → ask what they need
   if (session.stage === 'recommend' && isIntentUnchanged(session.intent, updatedIntent)) {
-    const needsRec = /再推薦|重新推薦|換一台|其他推薦|其他機型|再推|重推/.test(userMessage)
+    const needsRec = /再推薦|重新推薦|換一台|其他推薦|其他機型|再推|重推|評價|評論|網友|ptt|dcard/.test(userMessage)
     if (!needsRec) {
       const msg = `請問您還有什麼疑問，或是想調整需求（坪數、預算、用途）嗎？
 
