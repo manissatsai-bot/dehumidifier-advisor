@@ -665,6 +665,17 @@ function card(p, i) {
             ${b.label}
           </a>`).join('')}
       </div>
+
+      <!-- 網友評價（非同步載入） -->
+      <div class="mt-4 pt-3 border-t border-cream-200/70">
+        <div class="flex items-center justify-between mb-2">
+          <span class="text-[11.5px] font-black text-ink-soft">網友評價</span>
+          <span id="rev-badge-${p.id}" class="text-[10px] font-bold"></span>
+        </div>
+        <div id="rev-body-${p.id}" class="text-[12px] text-ink-faint italic">
+          <span class="opacity-60">正在載入⋯</span>
+        </div>
+      </div>
     </div>
   </article>`;
 }
@@ -773,6 +784,7 @@ async function submitWizard(){
   }
   state.chat = [];
   state.view='results'; render();
+  requestAnimationFrame(triggerReviewLoad);
 }
 
 function animateBars(){
@@ -802,6 +814,7 @@ async function sendMessage(text){
       render();                     // 條件/卡片有變 → 整頁重繪
       flashUpdated();
       requestAnimationFrame(animateBars);
+      requestAnimationFrame(triggerReviewLoad);
     } else {
       rerenderChat();
     }
@@ -826,6 +839,54 @@ function flashUpdated(){
   t.textContent = '✓ 已根據你的新需求更新推薦';
   document.body.appendChild(t);
   setTimeout(()=>{ t.style.transition='opacity .4s'; t.style.opacity='0'; setTimeout(()=>t.remove(),400); }, 2200);
+}
+
+/* ----------------------------- 網友評價（非同步） ----------------------------- */
+async function loadReviews(p) {
+  const bodyEl = () => document.getElementById(`rev-body-${p.id}`);
+  const badgeEl = () => document.getElementById(`rev-badge-${p.id}`);
+  try {
+    const res = await fetch('/api/reviews', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ product: { id: p.id, brand: p.brand, modelId: p.modelId, model: p.model } }),
+    });
+    const { reviews } = await res.json();
+    const el = bodyEl();
+    if (!el) return;
+    if (!reviews || (!reviews.highlights?.length && !reviews.pros?.length)) {
+      el.innerHTML = '<span class="not-italic text-ink-faint">尚無網路評價資料</span>';
+      return;
+    }
+    const sentMap = {
+      positive: ['text-teal-700', '整體正評'],
+      negative: ['text-clay-600', '評價偏負'],
+      mixed:    ['text-gold',     '評價不一'],
+      unknown:  ['text-ink-faint','評價不一'],
+    };
+    const [sc, sl] = sentMap[reviews.overall_sentiment] ?? sentMap.unknown;
+    const badge = badgeEl();
+    if (badge) badge.innerHTML = `<span class="${sc}">${sl}</span>`;
+    const highlights = reviews.highlights?.slice(0, 2) ?? [];
+    if (highlights.length > 0) {
+      el.innerHTML = highlights.map(h => `
+        <div class="not-italic mb-2 last:mb-0 leading-snug">
+          <span class="inline-block px-1.5 py-0.5 rounded bg-cream-100 text-[10px] text-ink-faint mr-1 font-bold not-italic">${h.source}</span>
+          <a href="${h.url}" target="_blank" rel="noopener" class="text-ink-soft hover:text-teal transition-colors">「${h.quote}」</a>
+        </div>`).join('');
+    } else {
+      el.innerHTML = reviews.pros.slice(0, 2).map(t =>
+        `<div class="not-italic flex gap-1 mb-1"><span class="text-teal">＋</span><span class="text-ink-soft">${t}</span></div>`
+      ).join('');
+    }
+  } catch {
+    const el = bodyEl();
+    if (el) el.innerHTML = '<span class="not-italic text-ink-faint">評價載入失敗</span>';
+  }
+}
+
+function triggerReviewLoad() {
+  state.recommendations.forEach(p => loadReviews(p));
 }
 
 /* ----------------------------- 啟動 ----------------------------- */

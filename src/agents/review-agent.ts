@@ -1,10 +1,14 @@
 import Anthropic from '@anthropic-ai/sdk'
-import type { ScoredProduct, RawReview, CuratedReviews, ReviewHighlight } from '@/lib/types'
+import type { RawReview, CuratedReviews, ReviewHighlight } from '@/lib/types'
 
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
+interface ReviewProductMeta {
+  name_tw: string
+}
+
 export async function curateReviews(
-  product: ScoredProduct,
+  product: ReviewProductMeta,
   rawReviews: RawReview[]
 ): Promise<CuratedReviews> {
   const empty: CuratedReviews = {

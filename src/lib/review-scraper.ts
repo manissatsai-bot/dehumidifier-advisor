@@ -1,4 +1,10 @@
-import type { RawReview, Product } from './types'
+import type { RawReview } from './types'
+
+interface ReviewInput {
+  id: string
+  brand: string
+  model_id: string
+}
 
 const reviewCache = new Map<string, { data: RawReview[]; expires: number }>()
 const CACHE_TTL = 12 * 60 * 60 * 1000 // 12h
@@ -243,7 +249,7 @@ async function fetchYTComments(video: YTSearchItem, apiKey: string): Promise<Raw
 }
 
 // ── Main export ───────────────────────────────────────────────────────────────
-export async function fetchProductReviews(product: Product): Promise<RawReview[]> {
+export async function fetchProductReviews(product: ReviewInput): Promise<RawReview[]> {
   const cached = reviewCache.get(product.id)
   if (cached && cached.expires > Date.now()) return cached.data
 
