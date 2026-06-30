@@ -1,0 +1,808 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>潤居 · 除濕選物顧問</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&family=Nunito:wght@600;700;800;900&display=swap" rel="stylesheet" />
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        colors: {
+          cream: { 50: '#fbf7f0', 100: '#f6efe2', 200: '#ece0cd', 300: '#ddcbb0' },
+          ink:   { DEFAULT: '#3a342c', soft: '#6b6353', faint: '#9a9385' },
+          teal:  { 50:'#eaf5f2', 400:'#3aa493', DEFAULT: '#2f8f80', 600: '#277668', 700:'#1f5e53' },
+          clay:  { 50:'#fbeee4', DEFAULT: '#d98a5b', 600: '#c2724a' },
+          gold:  { DEFAULT: '#e0a23c' },
+        },
+        fontFamily: {
+          sans: ['Nunito', 'Noto Sans TC', 'system-ui', 'sans-serif'],
+        },
+        boxShadow: {
+          soft: '0 10px 30px -12px rgba(91,73,45,0.18)',
+          card: '0 2px 10px -2px rgba(91,73,45,0.10), 0 12px 28px -14px rgba(91,73,45,0.20)',
+        },
+      },
+    },
+  };
+</script>
+<style>
+  html, body { background: #f7f0e6; }
+  body { font-family: 'Nunito', 'Noto Sans TC', system-ui, sans-serif; color: #3a342c; -webkit-font-smoothing: antialiased; }
+  ::-webkit-scrollbar { width: 10px; height: 10px; }
+  ::-webkit-scrollbar-thumb { background: #ddcbb0; border-radius: 99px; border: 2px solid #f7f0e6; }
+  .fade-up { animation: fadeUp .45s cubic-bezier(.22,.61,.36,1) both; }
+  /* 只動位移、不動透明度 → 即使動畫時鐘停在 0 也保證內容可見 */
+  @keyframes fadeUp { from { transform: translateY(14px); } to { transform: none; } }
+  .stagger > * { animation: fadeUp .5s cubic-bezier(.22,.61,.36,1) both; }
+  .stagger > *:nth-child(1){animation-delay:.04s}.stagger > *:nth-child(2){animation-delay:.12s}.stagger > *:nth-child(3){animation-delay:.20s}
+  .barfill { transition: width .9s cubic-bezier(.22,.61,.36,1); }
+  .ph-stripe { background-image: repeating-linear-gradient(135deg, #efe6d4 0 10px, #f3ecdd 10px 20px); }
+  input[type=range]{ -webkit-appearance:none; appearance:none; height:8px; border-radius:99px; background:#ece0cd; outline:none; }
+  input[type=range]::-webkit-slider-thumb{ -webkit-appearance:none; width:30px; height:30px; border-radius:50%; background:#2f8f80; border:5px solid #fffdf8; box-shadow:0 4px 12px -2px rgba(47,143,128,.55); cursor:pointer; }
+  input[type=range]::-moz-range-thumb{ width:24px; height:24px; border-radius:50%; background:#2f8f80; border:5px solid #fffdf8; cursor:pointer; }
+  .chat-scroll { scrollbar-width: thin; }
+  @keyframes blink { 0%,80%,100%{opacity:.25} 40%{opacity:1} }
+  .dot { animation: blink 1.2s infinite both; }
+  .dot:nth-child(2){animation-delay:.2s}.dot:nth-child(3){animation-delay:.4s}
+</style>
+</head>
+<body class="min-h-screen">
+
+<!-- ============================================================
+     潤居 · 除濕選物顧問  —  單一檔案前端（給 VS Code 後端串接）
+     後端接口見頁尾 <script> 內「後端串接說明」區塊。
+     ============================================================ -->
+
+<!-- 頂部導覽 -->
+<header class="sticky top-0 z-30 backdrop-blur-md bg-cream-50/80 border-b border-cream-200">
+  <div class="max-w-6xl mx-auto px-5 sm:px-8 h-16 flex items-center justify-between">
+    <a href="#" onclick="goHome();return false" class="flex items-center gap-2.5 group">
+      <span class="grid place-items-center w-9 h-9 rounded-2xl bg-teal text-white shadow-soft">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 3.2C12 3.2 5.5 10 5.5 15a6.5 6.5 0 0 0 13 0c0-5-6.5-11.8-6.5-11.8Z" fill="currentColor" opacity=".95"/><circle cx="9.6" cy="14.6" r="1.7" fill="#fffdf8" opacity=".55"/></svg>
+      </span>
+      <span class="leading-tight">
+        <span class="block font-extrabold tracking-tight text-[17px] text-ink">潤居</span>
+        <span class="block text-[11px] text-ink-faint -mt-0.5">除濕選物顧問</span>
+      </span>
+    </a>
+    <nav class="flex items-center gap-1.5 text-sm">
+      <button onclick="goHome()" class="px-3.5 py-2 rounded-full text-ink-soft hover:text-ink hover:bg-cream-100 transition font-bold">重新開始</button>
+      <span class="hidden sm:inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full bg-clay-50 text-clay-600 font-bold text-[13px]">
+        <span class="w-1.5 h-1.5 rounded-full bg-clay animate-pulse"></span>顧問在線
+      </span>
+    </nav>
+  </div>
+</header>
+
+<main id="app" class="max-w-6xl mx-auto px-5 sm:px-8 py-8 sm:py-12"></main>
+
+<footer class="max-w-6xl mx-auto px-5 sm:px-8 pb-10 pt-2 text-center text-[12px] text-ink-faint">
+  範例型號與規格僅供介面預覽，正式推薦結果由你的後端資料庫即時提供 · © 2026 潤居
+</footer>
+
+<script>
+/* ============================================================================
+ *  後端串接說明  ——  正式上線時，把 API.USE_MOCK 設為 false 即可。
+ *
+ *  ① POST  /api/recommend
+ *     body : { area:Number, roomType:String, budget:String,
+ *              purposes:[String], priorities:[String], note:String }
+ *     回傳 : { recommendations: Product[] }   // 由後端依加權邏輯排序好的 2~3 款
+ *
+ *  ② POST  /api/chat
+ *     body : { messages:[{role:'user'|'assistant', content:String}],
+ *              conditions:Conditions }
+ *     回傳 : { reply:String, conditions?:Conditions, recommendations?:Product[] }
+ *            // 顧問回覆；若使用者調整了需求，可一併回傳新的 conditions 與 recommendations
+ *
+ *  Product 結構（前後端共用）：
+ *     { id, brand, model, image, capacity(L/日), area(適用坪數), tank(水箱L),
+ *       energy('一級'|'二級'|'三級'), noise(dB), price(NT$),
+ *       features:[String], pros:[String], cons:[String],
+ *       score:Number(0~10), bars:{ dehumidify, efficiency, quiet }(0~100),
+ *       reasons:[String] }            // bars / score / reasons 可由後端算好回傳
+ * ========================================================================== */
+
+const API = {
+  USE_MOCK: false,
+  base: '',                       // ← 例如 'http://localhost:3000'
+
+  async recommend(conditions) {
+    if (this.USE_MOCK) { await wait(700); return mockRecommend(conditions); }
+    const r = await fetch(this.base + '/api/recommend', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(conditions),
+    });
+    if (!r.ok) throw new Error('recommend failed');
+    return (await r.json()).recommendations;
+  },
+
+  async chat(messages, conditions) {
+    if (this.USE_MOCK) { await wait(650); return mockChat(messages, conditions); }
+    const r = await fetch(this.base + '/api/chat', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ messages, conditions }),
+    });
+    if (!r.ok) throw new Error('chat failed');
+    return await r.json();
+  },
+};
+
+const wait = (ms) => new Promise((res) => setTimeout(res, ms));
+
+/* ---------------------------- 選項定義 ---------------------------- */
+const ROOMS = [
+  { id:'living',  label:'客廳 / 起居室', hint:'開放、坪數較大', damp:1.0 },
+  { id:'bedroom', label:'主臥 / 臥室',   hint:'重視安靜',       damp:0.95 },
+  { id:'study',   label:'次臥 / 書房',   hint:'小空間',         damp:0.9 },
+  { id:'bath',    label:'浴室 / 更衣間', hint:'濕氣集中',       damp:1.25 },
+  { id:'basement',label:'地下室 / 車庫', hint:'高潮濕、易發霉', damp:1.45 },
+  { id:'whole',   label:'開放式整層',    hint:'大坪數連通',     damp:1.15 },
+  { id:'storage', label:'儲藏室 / 衣帽間',hint:'怕收藏發霉',    damp:1.1 },
+];
+const BUDGETS = [
+  { id:'b1', label:'5,000 以下',      lo:0,     hi:5000 },
+  { id:'b2', label:'5,000–8,000',     lo:5000,  hi:8000 },
+  { id:'b3', label:'8,000–12,000',    lo:8000,  hi:12000 },
+  { id:'b4', label:'12,000–20,000',   lo:12000, hi:20000 },
+  { id:'b5', label:'20,000 以上',     lo:20000, hi:99999 },
+  { id:'b0', label:'不設限',          lo:0,     hi:99999 },
+];
+const PURPOSES = [
+  { id:'daily',     label:'日常除濕',     desc:'維持舒適濕度 50–60%' },
+  { id:'mold',      label:'防黴抗潮',     desc:'牆角、衣櫃不發霉' },
+  { id:'cloth',     label:'衣物乾燥',     desc:'陰雨天室內烘衣' },
+  { id:'allergy',   label:'防螨抗過敏',   desc:'過敏體質更友善' },
+  { id:'furniture', label:'保護傢俱收藏', desc:'木傢俱、相機、樂器' },
+  { id:'heavy',     label:'地下室 / 車庫',desc:'高潮濕重度除濕' },
+];
+const PRIORITIES = [
+  { id:'energy', label:'一級能效省電' },
+  { id:'quiet',  label:'低噪音靜音' },
+  { id:'tank',   label:'大容量水箱' },
+  { id:'drain',  label:'連續排水' },
+  { id:'auto',   label:'自動濕度控制' },
+  { id:'wifi',   label:'WiFi 智慧連網' },
+  { id:'brand',  label:'品牌信賴' },
+  { id:'light',  label:'輕巧好移動' },
+];
+
+/* ---------------------------- 範例產品庫（正式版改由後端資料庫） ---------------------------- */
+const CATALOG = [
+  { id:'d250', brand:'淨域', model:'PureZone D250', capacity:25, area:20, tank:5,   energy:'一級', noise:42, price:15800,
+    features:['energy','auto','wifi','brand','drain'],
+    pros:['25L/日高效除濕，回潮季也壓得住','支援連續排水，免倒水','App 遠端監控與濕度排程'],
+    cons:['機身較大，套房略佔空間','價格偏中高'] },
+  { id:'c180', brand:'適居', model:'ComfortDry C180', capacity:18, area:14, tank:4, energy:'一級', noise:36, price:11200,
+    features:['energy','quiet','auto','brand'],
+    pros:['36dB 超靜音，臥室夜間幾乎無感','一級能效，長時間運轉省電','自動濕度偵測，到設定值待機'],
+    cons:['無連續排水孔','不支援 App'] },
+  { id:'j120', brand:'樂乾', model:'DryJoy J120', capacity:12, area:8, tank:3, energy:'二級', noise:40, price:6990,
+    features:['light','auto'],
+    pros:['價格親民，小坪數 CP 值高','機身輕巧好移動','操作簡單，長輩也上手'],
+    cons:['二級能效，長開較耗電','水箱偏小要常倒'] },
+  { id:'s300', brand:'恆穩', model:'SteadyAir S300', capacity:30, area:25, tank:6, energy:'一級', noise:46, price:19800,
+    features:['tank','drain','energy','brand','auto'],
+    pros:['30L/日，地下室與整層的首選','6L 大水箱＋連續排水雙模式','金屬壓縮機，耐用穩定'],
+    cons:['46dB 運轉聲較明顯','體積與重量都大'] },
+  { id:'w200', brand:'衣乾淨', model:'ClothDry W200', capacity:20, area:16, tank:4, energy:'一級', noise:44, price:13500,
+    features:['cloth','auto','energy','wifi'],
+    pros:['專屬烘衣模式，陰雨天衣物快乾','一級能效＋廣角出風','App 預約乾衣時段'],
+    cons:['烘衣模式運轉聲較大','機身較高'] },
+  { id:'m90', brand:'微氧', model:'MicroAir M90', capacity:9, area:5, tank:2.5, energy:'二級', noise:38, price:4980,
+    features:['light','quiet'],
+    pros:['套房、書房剛剛好','38dB 安靜，重量僅約 6kg','體積小不佔位'],
+    cons:['除濕力有限，回潮季吃力','二級能效'] },
+];
+
+/* ---------------------------- 應用狀態 ---------------------------- */
+const state = {
+  view: 'landing',        // landing | wizard | loading | results
+  step: 1,                // 1..5
+  conditions: { area: 8, roomType: null, budget: null, purposes: [], priorities: [], note: '' },
+  recommendations: [],
+  chat: [],               // {role, content}
+  chatBusy: false,
+};
+
+/* ============================== 工具 ============================== */
+function requiredCapacity(area, roomId) {
+  const room = ROOMS.find(r => r.id === roomId);
+  const damp = room ? room.damp : 1.0;
+  return Math.round(area * 0.62 * damp * 10) / 10;   // 概估建議除濕力 L/日
+}
+function energyScore(e){ return e === '一級' ? 94 : e === '二級' ? 76 : 58; }
+function quietScore(db){ return clamp(Math.round((52 - db) / (52 - 34) * 100), 8, 100); }
+function dehumScore(cap){ return clamp(Math.round(cap / 30 * 100), 10, 100); }
+function clamp(v, lo, hi){ return Math.max(lo, Math.min(hi, v)); }
+const NT = (n) => 'NT$ ' + n.toLocaleString('en-US');
+
+/* ====================== 前端範例推薦邏輯（正式版由後端 API 回傳） ====================== */
+function mockRecommend(c) {
+  const need = requiredCapacity(c.area, c.roomType);
+  const budget = BUDGETS.find(b => b.id === c.budget) || BUDGETS.find(b=>b.id==='b0');
+
+  const scored = CATALOG.map(p => {
+    // 1) 坪數/除濕力契合度
+    const ratio = p.capacity / need;
+    const fit = ratio >= 1
+      ? clamp(1 - (ratio - 1.25) * 0.45, 0.55, 1)   // 過度超規格略扣
+      : clamp(ratio * 0.85, 0.2, 0.9);              // 不足較明顯扣分
+    // 2) 預算契合度
+    const inBudget = p.price <= budget.hi;
+    const budgetFit = inBudget ? clamp(1 - Math.max(0, budget.lo - p.price) / 8000, 0.7, 1) : 0.4;
+    // 3) 用途契合（地下室/衣物乾燥特別加權）
+    let purpose = 0.6;
+    if (c.purposes.includes('heavy') && p.capacity >= 22) purpose += 0.25;
+    if (c.purposes.includes('cloth') && p.features.includes('cloth')) purpose += 0.25;
+    if (c.purposes.includes('mold') && p.energy === '一級') purpose += 0.1;
+    if (c.purposes.includes('allergy') && p.features.includes('auto')) purpose += 0.1;
+    purpose = clamp(purpose, 0.5, 1);
+    // 4) 在意要點契合（命中越多越高）
+    const prio = c.priorities.length
+      ? c.priorities.filter(id =>
+          p.features.includes(id) ||
+          (id === 'quiet' && p.noise <= 39) ||
+          (id === 'energy' && p.energy === '一級') ||
+          (id === 'tank' && p.tank >= 5)
+        ).length / c.priorities.length
+      : 0.7;
+
+    const score10 = clamp(
+      (fit * 0.34 + budgetFit * 0.2 + purpose * 0.22 + prio * 0.24) * 10,
+      0, 10
+    );
+
+    return {
+      ...p,
+      score: Math.round(score10 * 10) / 10,
+      bars: { dehumidify: dehumScore(p.capacity), efficiency: energyScore(p.energy), quiet: quietScore(p.noise) },
+      reasons: buildReasons(p, c, need, inBudget),
+      need,
+    };
+  });
+
+  return scored.sort((a, b) => b.score - a.score).slice(0, 3);
+}
+
+function buildReasons(p, c, need, inBudget) {
+  const r = [];
+  if (p.capacity >= need) r.push(`${p.capacity}L/日 對應你約 ${need}L 的需求，${p.area} 坪適用範圍涵蓋 ${c.area} 坪空間`);
+  else r.push(`輕巧取向，適合 ${p.area} 坪內；若回潮季重度除濕可能略吃力`);
+  if (c.priorities.includes('quiet') && p.noise <= 39) r.push(`${p.noise}dB 超靜音，臥室與夜間使用安心`);
+  if (c.priorities.includes('energy') && p.energy === '一級') r.push('一級能效，長時間運轉電費更省');
+  if (c.purposes.includes('cloth') && p.features.includes('cloth')) r.push('內建烘衣模式，陰雨天衣物快乾');
+  if (c.purposes.includes('heavy') && p.capacity >= 22) r.push('高除濕力＋穩定壓縮機，地下室／車庫也壓得住');
+  if (c.priorities.includes('tank') && p.tank >= 5) r.push(`${p.tank}L 大水箱，減少倒水頻率`);
+  if (c.priorities.includes('drain') && p.features.includes('drain')) r.push('支援連續排水，可長時間免顧');
+  if (inBudget) r.push(`${NT(p.price)}，落在你的預算範圍內`);
+  return r.slice(0, 3);
+}
+
+/* ====================== 前端範例顧問對話（正式版由後端 API 回傳） ====================== */
+function mockChat(messages, c) {
+  const last = messages[messages.length - 1].content;
+  const cond = JSON.parse(JSON.stringify(c));
+  let changed = false; const notes = [];
+
+  if (/安靜|靜音|吵|噪音|小聲/.test(last)) { if (!cond.priorities.includes('quiet')) { cond.priorities.push('quiet'); changed = true; } notes.push('把「低噪音」加進你的重視項目'); }
+  if (/便宜|預算|貴|省錢|划算|低一點/.test(last)) { cond.budget = 'b2'; changed = true; notes.push('把預算調整到 8,000 以內，優先平價選項'); }
+  if (/水箱|倒水|排水/.test(last)) { if (!cond.priorities.includes('tank')) { cond.priorities.push('tank'); changed = true; } notes.push('改為偏好大容量水箱／連續排水'); }
+  if (/過敏|塵螨|塵蟎|鼻子/.test(last)) { if (!cond.purposes.includes('allergy')) { cond.purposes.push('allergy'); changed = true; } notes.push('納入防螨抗過敏需求'); }
+  if (/烘衣|曬衣|衣服|乾衣/.test(last)) { if (!cond.purposes.includes('cloth')) { cond.purposes.push('cloth'); changed = true; } notes.push('加入衣物乾燥用途'); }
+  if (/地下室|車庫|發霉|很潮/.test(last)) { if (!cond.purposes.includes('heavy')) { cond.purposes.push('heavy'); changed = true; } notes.push('提高除濕力權重以對應高潮濕空間'); }
+  if (/大一點|坪數|更大|空間變/.test(last)) { cond.area = Math.min(30, cond.area + 4); changed = true; notes.push(`空間調整為約 ${cond.area} 坪`); }
+
+  if (changed) {
+    const recs = mockRecommend(cond);
+    return {
+      reply: `了解，已${notes.join('、')}，並重新為你排序推薦。新的首選是「${recs[0].brand} ${recs[0].model}」，你可以看上方更新後的卡片，有需要再跟我說。`,
+      conditions: cond, recommendations: recs,
+    };
+  }
+  return {
+    reply: '收到～如果你想調整方向，可以告訴我例如：「要更安靜的」「預算再低一點」「水箱大一點」「給過敏體質用」，我會即時幫你重新推薦。',
+  };
+}
+
+/* ============================================================================
+ *                                 畫面渲染
+ * ========================================================================== */
+const app = () => document.getElementById('app');
+
+function render() {
+  const el = app();
+  if (state.view === 'landing') el.innerHTML = viewLanding();
+  else if (state.view === 'wizard') el.innerHTML = viewWizard();
+  else if (state.view === 'loading') el.innerHTML = viewLoading();
+  else if (state.view === 'results') el.innerHTML = viewResults();
+  window.scrollTo({ top: 0, behavior: 'instant' });
+  if (state.view === 'results') requestAnimationFrame(animateBars);
+}
+
+/* ----------------------------- 首頁 ----------------------------- */
+function viewLanding() {
+  return `
+  <section class="fade-up">
+    <div class="grid lg:grid-cols-[1.05fr_.95fr] gap-8 lg:gap-12 items-center">
+      <div>
+        <span class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-teal-50 text-teal-700 font-bold text-[13px] mb-5">
+          <span class="w-1.5 h-1.5 rounded-full bg-teal"></span>十年家電選購顧問 · 為你的家量身推薦
+        </span>
+        <h1 class="text-[40px] sm:text-[52px] leading-[1.08] font-black tracking-tight text-ink">
+          挑一台<span class="text-teal">剛剛好</span>的<br/>除濕機，不多花一塊錢
+        </h1>
+        <p class="mt-5 text-[16px] sm:text-[17px] leading-relaxed text-ink-soft max-w-lg">
+          回答 3 個小問題，我會依照你的坪數、格局、預算與在意的點，
+          精選 2～3 款最合適的型號，附上白話的優缺點與推薦指數。
+        </p>
+        <div class="mt-8 flex flex-wrap items-center gap-3">
+          <button onclick="startWizard()" class="group inline-flex items-center gap-2 px-7 py-4 rounded-2xl bg-teal text-white font-extrabold text-[16px] shadow-soft hover:bg-teal-600 active:scale-[.98] transition">
+            開始選購
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" class="group-hover:translate-x-0.5 transition"><path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+          <span class="text-[13px] text-ink-faint">免註冊 · 約 1 分鐘</span>
+        </div>
+        <div class="mt-9 flex flex-wrap gap-x-7 gap-y-3 text-[13px] text-ink-soft font-bold">
+          ${['加權評分推薦指數','白話優缺點','可跟顧問持續對話'].map(t=>`
+            <span class="inline-flex items-center gap-1.5"><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="11" fill="#eaf5f2"/><path d="M7.5 12.4l3 3 6-6.5" stroke="#2f8f80" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>${t}</span>`).join('')}
+        </div>
+      </div>
+
+      <div class="relative">
+        <div class="absolute -inset-4 bg-gradient-to-br from-teal-50 to-clay-50 rounded-[40px] blur-xl opacity-70"></div>
+        <div class="relative bg-cream-50 rounded-[32px] p-6 shadow-card border border-cream-200">
+          <div class="ph-stripe rounded-2xl h-44 grid place-items-center mb-5">
+            <span class="font-mono text-[12px] text-ink-faint bg-cream-50/80 px-3 py-1.5 rounded-lg">product shot · 除濕機情境照</span>
+          </div>
+          <div class="flex items-center justify-between mb-3">
+            <div>
+              <p class="font-extrabold text-ink text-[15px]">本週熱門推薦</p>
+              <p class="text-[12px] text-ink-faint">適居 ComfortDry C180</p>
+            </div>
+            <span class="px-2.5 py-1 rounded-lg bg-teal text-white font-black text-[14px]">9.2</span>
+          </div>
+          ${miniBar('除濕力', 60)}${miniBar('能效', 94)}${miniBar('靜音', 88)}
+        </div>
+      </div>
+    </div>
+  </section>`;
+}
+function miniBar(label, v) {
+  return `<div class="flex items-center gap-3 mb-2">
+    <span class="text-[12px] text-ink-faint w-10 font-bold">${label}</span>
+    <span class="flex-1 h-2 rounded-full bg-cream-200 overflow-hidden"><span class="block h-full rounded-full bg-teal" style="width:${v}%"></span></span>
+  </div>`;
+}
+
+/* ----------------------------- 精靈 ----------------------------- */
+const STEP_TITLES = ['', '空間有多大、放在哪裡？', '預算範圍？', '想解決什麼、特別在意什麼？'];
+function viewWizard() {
+  const s = state.step, c = state.conditions;
+  return `
+  <section class="max-w-2xl mx-auto">
+    <!-- 進度 -->
+    <div class="flex items-center justify-between mb-2 text-[13px] font-bold">
+      <button onclick="wizBack()" class="inline-flex items-center gap-1 text-ink-faint hover:text-ink transition ${s===1?'opacity-0 pointer-events-none':''}">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M14 6l-6 6 6 6" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>上一步
+      </button>
+      <span class="text-ink-faint">第 ${s} / 3 步</span>
+    </div>
+    <div class="h-2 rounded-full bg-cream-200 overflow-hidden mb-8">
+      <div class="h-full rounded-full bg-teal barfill" style="width:${s/3*100}%"></div>
+    </div>
+
+    <div class="fade-up" key="${s}">
+      <h2 class="text-[28px] sm:text-[32px] font-black tracking-tight text-ink">${STEP_TITLES[s]}</h2>
+      <p class="text-ink-soft mt-1.5 mb-7">${stepSubtitle(s)}</p>
+      ${stepBody(s, c)}
+    </div>
+
+    <div class="mt-9 flex items-center justify-between gap-4">
+      <button onclick="goHome()" class="text-[13px] font-bold text-ink-faint hover:text-ink transition">取消</button>
+      <button onclick="wizNext()" id="nextBtn" class="inline-flex items-center gap-2 px-7 py-3.5 rounded-2xl font-extrabold text-white shadow-soft transition active:scale-[.98] ${stepValid(s)?'bg-teal hover:bg-teal-600':'bg-cream-300 cursor-not-allowed'}">
+        ${s === 3 ? '查看推薦結果' : '下一步'}
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+    </div>
+  </section>`;
+}
+function stepSubtitle(s){
+  return ['', '坪數與格局會一起決定建議的除濕力（不同空間的潮濕程度不同）',
+    '幫你在合適價位內篩選，不超買', '用途影響推薦取向，在意的點會加權評分'][s];
+}
+function stepValid(s){
+  const c = state.conditions;
+  if (s === 1) return c.area >= 1 && !!c.roomType;
+  if (s === 2) return !!c.budget;
+  if (s === 3) return c.purposes.length > 0;
+  return true;
+}
+function stepBody(s, c) {
+  if (s === 1) {
+    const need = requiredCapacity(c.area, c.roomType);
+    return `
+    <div class="bg-cream-50 rounded-3xl p-6 sm:p-7 border border-cream-200 shadow-card">
+      <p class="text-[13px] font-black text-ink-soft mb-1">空間坪數</p>
+      <div class="flex items-end justify-center gap-2 mb-1">
+        <span id="areaNum" class="text-[60px] leading-none font-black text-teal">${c.area}</span>
+        <span class="text-[20px] font-extrabold text-ink-soft mb-2">坪</span>
+      </div>
+      <input type="range" min="1" max="30" value="${c.area}" class="w-full my-4" oninput="setArea(this.value)" />
+      <div class="flex justify-between text-[12px] text-ink-faint font-bold px-1"><span>1 坪</span><span>30 坪+</span></div>
+
+      <div class="h-px bg-cream-200 my-6"></div>
+
+      <p class="text-[13px] font-black text-ink-soft mb-3">主要放在哪個空間？</p>
+      <div class="grid sm:grid-cols-2 gap-2.5">
+        ${ROOMS.map(r=>`
+          <button onclick="setRoom('${r.id}')" class="text-left p-3 rounded-2xl border-2 transition flex items-center gap-2.5 ${c.roomType===r.id?'border-teal bg-teal-50':'border-cream-200 bg-cream-50 hover:border-teal-400'}">
+            <span class="grid place-items-center w-10 h-10 rounded-xl shrink-0 ${c.roomType===r.id?'bg-teal text-white':'bg-cream-100 text-ink-soft'}">${roomIcon(r.id)}</span>
+            <span class="min-w-0"><span class="block font-extrabold text-ink text-[14px] truncate">${r.label}</span><span class="block text-[11.5px] text-ink-faint truncate">${r.hint}</span></span>
+            ${c.roomType===r.id?'<span class="ml-auto text-teal shrink-0">'+checkIcon(16)+'</span>':''}
+          </button>`).join('')}
+      </div>
+
+      <div class="mt-6 flex items-center gap-2 rounded-2xl bg-teal-50 px-4 py-3 text-[13px] text-teal-700 font-bold">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" fill="#2f8f80" opacity=".15"/><path d="M12 7.5v5M12 16h.01" stroke="#277668" stroke-width="2" stroke-linecap="round"/></svg>
+        <span>${c.roomType?'依你的空間與格局，':'選好格局後更精準～'}建議除濕力約 <span class="text-teal font-black mx-0.5" id="needHint">${need}</span> L／日</span>
+      </div>
+    </div>`;
+  }
+  if (s === 2) {
+    return `<div class="grid sm:grid-cols-2 gap-3">
+      ${BUDGETS.map(b=>`
+        <button onclick="setBudget('${b.id}')" class="p-4 rounded-2xl border-2 transition flex items-center justify-between ${c.budget===b.id?'border-teal bg-teal-50':'border-cream-200 bg-cream-50 hover:border-teal-400'}">
+          <span class="font-extrabold text-ink text-[16px]">${b.label}</span>
+          ${c.budget===b.id?'<span class="text-teal">'+checkIcon()+'</span>':'<span class="w-5 h-5 rounded-full border-2 border-cream-300"></span>'}
+        </button>`).join('')}
+    </div>`;
+  }
+  // step 3：主要用途 + 特別在意的點
+  return `
+  <div>
+    <p class="text-[13px] font-black text-ink-soft mb-3">主要想解決什麼？<span class="text-ink-faint font-bold">（可複選，至少選一項）</span></p>
+    <div class="grid sm:grid-cols-2 gap-3">
+      ${PURPOSES.map(p=>{const on=c.purposes.includes(p.id);return `
+        <button onclick="togglePurpose('${p.id}')" class="text-left p-4 rounded-2xl border-2 transition ${on?'border-teal bg-teal-50':'border-cream-200 bg-cream-50 hover:border-teal-400'}">
+          <span class="flex items-center gap-2"><span class="w-5 h-5 rounded-md grid place-items-center ${on?'bg-teal text-white':'border-2 border-cream-300'}">${on?checkIcon(14):''}</span><span class="font-extrabold text-ink text-[15px]">${p.label}</span></span>
+          <span class="block text-[12px] text-ink-faint mt-1 ml-7">${p.desc}</span>
+        </button>`}).join('')}
+    </div>
+
+    <div class="h-px bg-cream-200 my-7"></div>
+
+    <p class="text-[13px] font-black text-ink-soft mb-3">特別在意的功能 <span class="text-ink-faint font-bold">（選填，會加權評分）</span></p>
+    <div class="flex flex-wrap gap-2.5 mb-5">
+      ${PRIORITIES.map(p=>{const on=c.priorities.includes(p.id);return `
+        <button onclick="togglePriority('${p.id}')" class="px-4 py-2.5 rounded-full text-[14px] font-bold border-2 transition inline-flex items-center gap-1.5 ${on?'border-teal bg-teal text-white':'border-cream-200 bg-cream-50 text-ink-soft hover:border-teal-400'}">
+          ${on?checkIcon(14):'<span class="text-ink-faint">＋</span>'}${p.label}
+        </button>`}).join('')}
+    </div>
+    <textarea oninput="setNote(this.value)" rows="3" placeholder="其他要補充的要點，例如：家裡有過敏兒、偏好日系品牌、希望可以放在嬰兒房整夜開……" class="w-full rounded-2xl border-2 border-cream-200 bg-cream-50 px-4 py-3 text-[15px] text-ink placeholder:text-ink-faint focus:border-teal focus:outline-none resize-none transition">${c.note}</textarea>
+  </div>`;
+}
+
+function roomIcon(id){
+  const m = {
+    living:'<rect x="3" y="11" width="18" height="8" rx="2"/><path d="M5 11V8a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v3M5 19v2M19 19v2"/>',
+    bedroom:'<path d="M3 18v-6a2 2 0 0 1 2-2h11a3 3 0 0 1 3 3v5M3 14h18M3 18v2M21 14v6"/><circle cx="7.5" cy="11.5" r="1.5"/>',
+    study:'<rect x="4" y="6" width="16" height="12" rx="2"/><path d="M8 10h8M8 13h5"/>',
+    bath:'<path d="M4 12h16v3a4 4 0 0 1-4 4H8a4 4 0 0 1-4-4v-3ZM6 12V6a2 2 0 0 1 4 0"/>',
+    basement:'<path d="M4 9l8-5 8 5v10a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V9Z"/><path d="M9 20v-6h6v6"/>',
+    whole:'<rect x="3" y="4" width="8" height="16" rx="1.5"/><rect x="13" y="4" width="8" height="16" rx="1.5"/>',
+    storage:'<rect x="4" y="5" width="16" height="14" rx="2"/><path d="M12 5v14M9 11h.01M15 11h.01"/>',
+  };
+  return `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${m[id]||m.study}</svg>`;
+}
+function checkIcon(sz=18){ return `<svg width="${sz}" height="${sz}" viewBox="0 0 24 24" fill="none"><path d="M5 12.5l4.5 4.5L19 7" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>`; }
+
+/* ----------------------------- Loading ----------------------------- */
+function viewLoading() {
+  return `<section class="min-h-[50vh] grid place-items-center fade-up">
+    <div class="text-center">
+      <div class="relative w-20 h-20 mx-auto mb-6">
+        <div class="absolute inset-0 rounded-full border-4 border-cream-200"></div>
+        <div class="absolute inset-0 rounded-full border-4 border-teal border-t-transparent animate-spin"></div>
+        <svg class="absolute inset-0 m-auto" width="28" height="28" viewBox="0 0 24 24" fill="none"><path d="M12 3.2C12 3.2 5.5 10 5.5 15a6.5 6.5 0 0 0 13 0c0-5-6.5-11.8-6.5-11.8Z" fill="#2f8f80"/></svg>
+      </div>
+      <p class="font-extrabold text-ink text-[18px]">顧問正在為你比對 ${CATALOG.length} 款型號…</p>
+      <p class="text-ink-faint text-[14px] mt-1">依坪數、預算與你在意的點加權評分中</p>
+    </div>
+  </section>`;
+}
+
+/* ----------------------------- 推薦結果 ----------------------------- */
+function viewResults() {
+  const c = state.conditions, recs = state.recommendations;
+  const room = ROOMS.find(r=>r.id===c.roomType);
+  const budget = BUDGETS.find(b=>b.id===c.budget);
+  const chips = [
+    `${c.area} 坪`, room?room.label:'',
+    budget?budget.label:'',
+    ...c.purposes.map(id=>PURPOSES.find(p=>p.id===id)?.label),
+    ...c.priorities.map(id=>PRIORITIES.find(p=>p.id===id)?.label),
+  ].filter(Boolean);
+
+  return `
+  <section class="fade-up">
+    <!-- 條件摘要 -->
+    <div class="flex flex-wrap items-center gap-2 mb-7">
+      <span class="font-extrabold text-ink text-[14px] mr-1">你的需求</span>
+      ${chips.map(t=>`<span class="px-3 py-1.5 rounded-full bg-cream-100 border border-cream-200 text-[12.5px] font-bold text-ink-soft">${t}</span>`).join('')}
+      <button onclick="editConditions()" class="px-3 py-1.5 rounded-full bg-teal-50 text-teal-700 text-[12.5px] font-bold hover:bg-teal-50 inline-flex items-center gap-1">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M4 20h4l10-10-4-4L4 16v4ZM14 6l4 4" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>修改
+      </button>
+    </div>
+
+    <div class="flex items-end justify-between mb-5 flex-wrap gap-2">
+      <h2 class="text-[28px] sm:text-[32px] font-black tracking-tight text-ink">為你精選 ${recs.length} 款</h2>
+      <span class="text-[13px] text-ink-faint font-bold">依你的條件加權排序 · 滿分 10 分</span>
+    </div>
+
+    <div class="grid lg:grid-cols-3 gap-5 stagger">
+      ${recs.map((p,i)=>card(p,i)).join('')}
+    </div>
+
+    ${chatSection()}
+  </section>`;
+}
+
+function stars(score) {
+  const v = score / 2;                       // 轉 5 星
+  const pct = clamp(v / 5 * 100, 0, 100);
+  const one = (col)=>`<svg width="18" height="18" viewBox="0 0 24 24" fill="${col}"><path d="M12 2.5l2.9 6.3 6.8.7-5.1 4.6 1.4 6.7L12 17.9 5.1 21.3l1.4-6.7L1.4 9.5l6.8-.7L12 2.5Z"/></svg>`;
+  return `<span class="relative inline-flex">
+    <span class="inline-flex gap-0.5">${one('#ece0cd').repeat(5)}</span>
+    <span class="absolute inset-0 inline-flex gap-0.5 overflow-hidden" style="width:${pct}%">${one('#e0a23c').repeat(5)}</span>
+  </span>`;
+}
+
+function scoreBar(label, val, color) {
+  return `<div class="mb-2">
+    <div class="flex justify-between text-[12px] font-bold mb-1"><span class="text-ink-soft">${label}</span><span class="text-ink-faint">${val}</span></div>
+    <span class="block h-2 rounded-full bg-cream-200 overflow-hidden"><span class="block h-full rounded-full barfill" data-w="${val}" style="width:0%;background:${color}"></span></span>
+  </div>`;
+}
+
+function card(p, i) {
+  const tag = i === 0 ? '最推薦' : i === 1 ? '高性價比' : '備選';
+  const tagCls = i === 0 ? 'bg-teal text-white' : 'bg-cream-100 text-ink-soft border border-cream-200';
+  return `
+  <article class="bg-cream-50 rounded-3xl border ${i===0?'border-teal':'border-cream-200'} shadow-card overflow-hidden flex flex-col relative">
+    ${i===0?'<span class="absolute top-0 left-0 right-0 h-1 bg-teal"></span>':''}
+    <div class="p-5 pb-0 flex items-start justify-between">
+      <span class="px-2.5 py-1 rounded-lg text-[12px] font-black ${tagCls}">${tag}</span>
+      <span class="text-right">
+        <span class="block text-[11px] text-ink-faint font-bold leading-none mb-0.5">推薦指數</span>
+        <span class="inline-flex items-baseline gap-0.5"><span class="text-[30px] leading-none font-black ${i===0?'text-teal':'text-ink'}">${p.score.toFixed(1)}</span><span class="text-[13px] text-ink-faint font-bold">/10</span></span>
+      </span>
+    </div>
+
+    <div class="px-5 pt-3">
+      <div class="ph-stripe rounded-2xl h-32 grid place-items-center">
+        <span class="font-mono text-[11px] text-ink-faint bg-cream-50/80 px-2.5 py-1 rounded-md">product shot</span>
+      </div>
+    </div>
+
+    <div class="p-5 pt-4 flex-1 flex flex-col">
+      <div class="flex items-center justify-between gap-2">
+        <div>
+          <h3 class="font-black text-ink text-[18px] leading-tight">${p.brand} <span class="text-ink-soft font-extrabold">${p.model}</span></h3>
+          <div class="mt-1.5 flex items-center gap-2">${stars(p.score)}<span class="text-[12px] text-ink-faint font-bold">${(p.score/2).toFixed(1)}</span></div>
+        </div>
+      </div>
+
+      <p class="mt-3 text-[18px] font-black text-clay-600">${NT(p.price)}</p>
+
+      <!-- 規格摘要 -->
+      <div class="mt-3 grid grid-cols-2 gap-1.5 text-[12.5px]">
+        ${specChip('除濕力', p.capacity+' L/日')}
+        ${specChip('適用', p.area+' 坪')}
+        ${specChip('水箱', p.tank+' L')}
+        ${specChip('能效', p.energy)}
+        ${specChip('噪音', p.noise+' dB')}
+        ${specChip('連續排水', p.features.includes('drain')?'支援':'—')}
+      </div>
+
+      <!-- 分項長條 -->
+      <div class="mt-4">
+        ${scoreBar('除濕力', p.bars.dehumidify, '#2f8f80')}
+        ${scoreBar('能效表現', p.bars.efficiency, '#e0a23c')}
+        ${scoreBar('靜音度', p.bars.quiet, '#3aa493')}
+      </div>
+
+      <!-- 推薦理由 -->
+      <div class="mt-4 rounded-2xl bg-teal-50 p-3.5">
+        <p class="text-[12px] font-black text-teal-700 mb-1.5">為什麼推薦給你</p>
+        <ul class="space-y-1.5">
+          ${p.reasons.map(r=>`<li class="flex gap-1.5 text-[12.5px] text-ink-soft leading-snug"><span class="text-teal mt-0.5 shrink-0">${checkIcon(13)}</span>${r}</li>`).join('')}
+        </ul>
+      </div>
+
+      <!-- 優缺點 -->
+      <div class="mt-3 grid grid-cols-2 gap-3">
+        <div>
+          <p class="text-[11.5px] font-black text-teal-700 mb-1">優點</p>
+          <ul class="space-y-1">${p.pros.map(x=>`<li class="text-[12px] text-ink-soft leading-snug flex gap-1"><span class="text-teal">＋</span>${x}</li>`).join('')}</ul>
+        </div>
+        <div>
+          <p class="text-[11.5px] font-black text-clay-600 mb-1">留意</p>
+          <ul class="space-y-1">${p.cons.map(x=>`<li class="text-[12px] text-ink-soft leading-snug flex gap-1"><span class="text-clay">－</span>${x}</li>`).join('')}</ul>
+        </div>
+      </div>
+
+      <a href="#" onclick="return false" class="mt-5 block text-center px-4 py-3 rounded-2xl font-extrabold text-[14px] transition active:scale-[.98] ${i===0?'bg-teal text-white hover:bg-teal-600':'bg-cream-100 text-ink hover:bg-cream-200 border border-cream-200'}">查看詳情</a>
+    </div>
+  </article>`;
+}
+function specChip(k, v){
+  return `<div class="flex items-center justify-between rounded-xl bg-cream-100 px-2.5 py-1.5">
+    <span class="text-ink-faint font-bold">${k}</span><span class="text-ink font-black">${v}</span></div>`;
+}
+
+/* ----------------------------- 對話顧問 ----------------------------- */
+function chatSection() {
+  return `
+  <div class="mt-12">
+    <div class="flex items-center gap-2.5 mb-4">
+      <span class="grid place-items-center w-9 h-9 rounded-2xl bg-clay text-white shrink-0">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M4 5h16v11H8l-4 4V5Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
+      </span>
+      <div>
+        <h3 class="font-black text-ink text-[18px] leading-tight">還有其他考量嗎？</h3>
+        <p class="text-[13px] text-ink-faint">直接跟顧問說，我會即時更新上方推薦</p>
+      </div>
+    </div>
+
+    <div class="bg-cream-50 rounded-3xl border border-cream-200 shadow-card overflow-hidden">
+      <div id="chatBox" class="chat-scroll px-5 py-5 space-y-3 max-h-[340px] overflow-y-auto">
+        ${state.chat.length === 0 ? chatHint() : state.chat.map(bubble).join('')}
+        ${state.chatBusy ? typingBubble() : ''}
+      </div>
+
+      <div class="px-4 pb-3 pt-1 flex flex-wrap gap-2 border-t border-cream-200/70">
+        ${['要更安靜的','預算再低一點','水箱大一點','給過敏體質用'].map(t=>`
+          <button onclick="quickAsk('${t}')" class="px-3 py-1.5 rounded-full bg-cream-100 hover:bg-teal-50 hover:text-teal-700 text-[12.5px] font-bold text-ink-soft border border-cream-200 transition">${t}</button>`).join('')}
+      </div>
+      <form onsubmit="sendChat(event)" class="flex items-center gap-2 p-3 border-t border-cream-200">
+        <input id="chatInput" type="text" autocomplete="off" placeholder="輸入你在意的點，例如：放在嬰兒房想更安靜…" class="flex-1 rounded-2xl border-2 border-cream-200 bg-cream-50 px-4 py-3 text-[15px] text-ink placeholder:text-ink-faint focus:border-teal focus:outline-none transition" />
+        <button type="submit" class="grid place-items-center w-12 h-12 rounded-2xl bg-teal text-white hover:bg-teal-600 shadow-soft transition active:scale-95 shrink-0">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M4 12l16-7-7 16-2.5-6.5L4 12Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/></svg>
+        </button>
+      </form>
+    </div>
+  </div>`;
+}
+function chatHint() {
+  return `<div class="text-center py-4">
+    <p class="text-[13px] text-ink-faint">嗨，我是你的除濕機顧問 👋<br/>推薦結果還合適嗎？想微調方向都可以跟我說。</p>
+  </div>`;
+}
+function bubble(m) {
+  if (m.role === 'user') {
+    return `<div class="flex justify-end"><div class="max-w-[80%] px-4 py-2.5 rounded-2xl rounded-br-md bg-teal text-white text-[14px] leading-relaxed font-medium">${escapeHtml(m.content)}</div></div>`;
+  }
+  return `<div class="flex justify-start gap-2">
+    <span class="grid place-items-center w-7 h-7 rounded-full bg-clay text-white shrink-0 mt-0.5"><svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M12 3.2C12 3.2 5.5 10 5.5 15a6.5 6.5 0 0 0 13 0c0-5-6.5-11.8-6.5-11.8Z" fill="currentColor"/></svg></span>
+    <div class="max-w-[80%] px-4 py-2.5 rounded-2xl rounded-bl-md bg-cream-100 text-ink text-[14px] leading-relaxed">${escapeHtml(m.content)}</div>
+  </div>`;
+}
+function typingBubble() {
+  return `<div class="flex justify-start gap-2">
+    <span class="grid place-items-center w-7 h-7 rounded-full bg-clay text-white shrink-0 mt-0.5"><svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M12 3.2C12 3.2 5.5 10 5.5 15a6.5 6.5 0 0 0 13 0c0-5-6.5-11.8-6.5-11.8Z" fill="currentColor"/></svg></span>
+    <div class="px-4 py-3 rounded-2xl rounded-bl-md bg-cream-100 inline-flex gap-1 items-center">
+      <span class="dot w-1.5 h-1.5 rounded-full bg-ink-faint"></span><span class="dot w-1.5 h-1.5 rounded-full bg-ink-faint"></span><span class="dot w-1.5 h-1.5 rounded-full bg-ink-faint"></span>
+    </div></div>`;
+}
+function escapeHtml(s){ return s.replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+
+/* ============================================================================
+ *                                  動作
+ * ========================================================================== */
+function goHome(){ state.view='landing'; render(); }
+function startWizard(){ state.view='wizard'; state.step=1; render(); }
+function wizBack(){ if(state.step>1){ state.step--; render(); } }
+function wizNext(){
+  if(!stepValid(state.step)) return;
+  if(state.step < 3){ state.step++; render(); }
+  else submitWizard();
+}
+function editConditions(){ state.view='wizard'; state.step=1; render(); }
+
+function setArea(v){
+  state.conditions.area = parseInt(v,10);
+  const num = document.getElementById('areaNum');
+  const hint = document.getElementById('needHint');
+  if(num) num.textContent = state.conditions.area;
+  if(hint) hint.textContent = requiredCapacity(state.conditions.area, state.conditions.roomType);
+  // 更新 range 與 preset 高亮（避免整頁重繪打斷拖曳）
+  const r = document.querySelector('input[type=range]'); if(r) r.value = state.conditions.area;
+  document.querySelectorAll('[onclick^="setArea("]').forEach(b=>{
+    const m = b.getAttribute('onclick').match(/setArea\((\d+)\)/);
+    if(m){ const on = parseInt(m[1],10)===state.conditions.area;
+      b.className = `px-4 py-2 rounded-full text-[13px] font-bold border transition ${on?'bg-teal text-white border-teal':'bg-cream-50 text-ink-soft border-cream-200 hover:border-teal-400'}`; }
+  });
+}
+function setRoom(id){ state.conditions.roomType=id; render(); }
+function setBudget(id){ state.conditions.budget=id; render(); }
+function togglePurpose(id){ const a=state.conditions.purposes; const i=a.indexOf(id); i<0?a.push(id):a.splice(i,1); render(); syncNext(); }
+function togglePriority(id){ const a=state.conditions.priorities; const i=a.indexOf(id); i<0?a.push(id):a.splice(i,1); render(); }
+function setNote(v){ state.conditions.note=v; }
+function syncNext(){ /* render 已重繪按鈕狀態 */ }
+
+async function submitWizard(){
+  state.view='loading'; render();
+  try {
+    state.recommendations = await API.recommend(state.conditions);
+  } catch(e){
+    console.error(e);
+    state.recommendations = mockRecommend(state.conditions); // 後端失敗時的保險
+  }
+  state.chat = [];
+  state.view='results'; render();
+}
+
+function animateBars(){
+  requestAnimationFrame(()=>{
+    document.querySelectorAll('.barfill[data-w]').forEach(el=>{
+      el.style.width = el.getAttribute('data-w') + '%';
+    });
+  });
+}
+
+/* ----------------------------- Chat ----------------------------- */
+function quickAsk(t){ const inp=document.getElementById('chatInput'); if(inp){ inp.value=t; } sendMessage(t); }
+function sendChat(e){ e.preventDefault(); const inp=document.getElementById('chatInput'); const v=inp.value.trim(); if(!v) return; inp.value=''; sendMessage(v); }
+
+async function sendMessage(text){
+  if(state.chatBusy) return;
+  state.chat.push({ role:'user', content:text });
+  state.chatBusy = true;
+  rerenderChat();
+  try {
+    const res = await API.chat(state.chat, state.conditions);
+    state.chatBusy = false;
+    state.chat.push({ role:'assistant', content: res.reply });
+    if(res.conditions) state.conditions = res.conditions;
+    if(res.recommendations){
+      state.recommendations = res.recommendations;
+      render();                     // 條件/卡片有變 → 整頁重繪
+      flashUpdated();
+      requestAnimationFrame(animateBars);
+    } else {
+      rerenderChat();
+    }
+  } catch(err){
+    console.error(err);
+    state.chatBusy = false;
+    state.chat.push({ role:'assistant', content:'抱歉，連線好像有點狀況，請稍後再試一次。' });
+    rerenderChat();
+  }
+}
+function rerenderChat(){
+  // 只重繪 chat 區，避免整頁閃動、保留捲動
+  const sec = document.querySelector('#app .mt-12');
+  if(!sec){ render(); return; }
+  sec.outerHTML = chatSection();
+  const box = document.getElementById('chatBox');
+  if(box) box.scrollTop = box.scrollHeight;
+}
+function flashUpdated(){
+  const t = document.createElement('div');
+  t.className = 'fixed left-1/2 -translate-x-1/2 bottom-6 z-50 px-5 py-3 rounded-2xl bg-ink text-white font-bold text-[14px] shadow-soft fade-up';
+  t.textContent = '✓ 已根據你的新需求更新推薦';
+  document.body.appendChild(t);
+  setTimeout(()=>{ t.style.transition='opacity .4s'; t.style.opacity='0'; setTimeout(()=>t.remove(),400); }, 2200);
+}
+
+/* ----------------------------- 啟動 ----------------------------- */
+render();
+</script>
+</body>
+</html>
