@@ -82,7 +82,7 @@
 <main id="app" class="max-w-6xl mx-auto px-5 sm:px-8 py-8 sm:py-12"></main>
 
 <footer class="max-w-6xl mx-auto px-5 sm:px-8 pb-10 pt-2 text-center text-[12px] text-ink-faint">
-  範例型號與規格僅供介面預覽，正式推薦結果由你的後端資料庫即時提供 · © 2026 潤居
+  © 2026 潤居
 </footer>
 
 <script>
@@ -339,17 +339,17 @@ function viewLanding() {
         </h1>
         <p class="mt-5 text-[16px] sm:text-[17px] leading-relaxed text-ink-soft max-w-lg">
           回答 3 個小問題，我會依照你的坪數、格局、預算與在意的點，
-          精選 2～3 款最合適的型號，附上白話的優缺點與推薦指數。
+          精選 2～3 款最合適的型號，附上推薦指數與優缺點比較。
         </p>
         <div class="mt-8 flex flex-wrap items-center gap-3">
           <button onclick="startWizard()" class="group inline-flex items-center gap-2 px-7 py-4 rounded-2xl bg-teal text-white font-extrabold text-[16px] shadow-soft hover:bg-teal-600 active:scale-[.98] transition">
-            開始選購
+            開始諮詢
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" class="group-hover:translate-x-0.5 transition"><path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
           </button>
-          <span class="text-[13px] text-ink-faint">免註冊 · 約 1 分鐘</span>
+          <span class="text-[13px] text-ink-faint">一分鐘為你找到最適合的除濕機</span>
         </div>
         <div class="mt-9 flex flex-wrap gap-x-7 gap-y-3 text-[13px] text-ink-soft font-bold">
-          ${['加權評分推薦指數','白話優缺點','可跟顧問持續對話'].map(t=>`
+          ${['1:1顧問專屬推薦','直觀優缺點比較','即時價格查詢/購買'].map(t=>`
             <span class="inline-flex items-center gap-1.5"><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="11" fill="#eaf5f2"/><path d="M7.5 12.4l3 3 6-6.5" stroke="#2f8f80" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>${t}</span>`).join('')}
         </div>
       </div>
@@ -403,8 +403,7 @@ function viewWizard() {
       ${stepBody(s, c)}
     </div>
 
-    <div class="mt-9 flex items-center justify-between gap-4">
-      <button onclick="goHome()" class="text-[13px] font-bold text-ink-faint hover:text-ink transition">取消</button>
+    <div class="mt-9 flex items-center justify-end gap-4">
       <button onclick="wizNext()" id="nextBtn" class="inline-flex items-center gap-2 px-7 py-3.5 rounded-2xl font-extrabold text-white shadow-soft transition active:scale-[.98] ${stepValid(s)?'bg-teal hover:bg-teal-600':'bg-cream-300 cursor-not-allowed'}">
         ${s === 3 ? '查看推薦結果' : '下一步'}
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -511,7 +510,7 @@ function viewLoading() {
         <div class="absolute inset-0 rounded-full border-4 border-teal border-t-transparent animate-spin"></div>
         <svg class="absolute inset-0 m-auto" width="28" height="28" viewBox="0 0 24 24" fill="none"><path d="M12 3.2C12 3.2 5.5 10 5.5 15a6.5 6.5 0 0 0 13 0c0-5-6.5-11.8-6.5-11.8Z" fill="#2f8f80"/></svg>
       </div>
-      <p class="font-extrabold text-ink text-[18px]">顧問正在為你比對 ${CATALOG.length} 款型號…</p>
+      <p class="font-extrabold text-ink text-[18px]">顧問正在評估專屬推薦</p>
       <p class="text-ink-faint text-[14px] mt-1">依坪數、預算與你在意的點加權評分中</p>
     </div>
   </section>`;
@@ -570,6 +569,21 @@ function scoreBar(label, val, color) {
   </div>`;
 }
 
+function getBuyInfo(p) {
+  const q = encodeURIComponent((p.brand ? p.brand + ' ' : '') + p.model);
+  if (p.momoUrl) return { url: p.momoUrl, label: '立即購買 · momo', external: true };
+  const pchomeUrl = (p.platform_urls || {}).PChome;
+  if (pchomeUrl) return { url: pchomeUrl, label: '立即購買 · PChome', external: true };
+  const shopeeUrl = (p.platform_urls || {}).Shopee;
+  if (shopeeUrl) return { url: shopeeUrl, label: '立即購買 · 蝦皮', external: true };
+  // 依序嘗試 momo 搜尋、PChome 搜尋、蝦皮搜尋，這裡直接給 Google
+  return {
+    url: `https://www.google.com/search?q=${encodeURIComponent((p.brand || '') + ' ' + p.model + ' 除濕機 購買')}`,
+    label: '搜尋購買連結',
+    external: true,
+  };
+}
+
 function card(p, i) {
   const tag = i === 0 ? '最推薦' : i === 1 ? '高性價比' : '備選';
   const tagCls = i === 0 ? 'bg-teal text-white' : 'bg-cream-100 text-ink-soft border border-cream-200';
@@ -582,12 +596,6 @@ function card(p, i) {
         <span class="block text-[11px] text-ink-faint font-bold leading-none mb-0.5">推薦指數</span>
         <span class="inline-flex items-baseline gap-0.5"><span class="text-[30px] leading-none font-black ${i===0?'text-teal':'text-ink'}">${p.score.toFixed(1)}</span><span class="text-[13px] text-ink-faint font-bold">/10</span></span>
       </span>
-    </div>
-
-    <div class="px-5 pt-3">
-      <div class="ph-stripe rounded-2xl h-32 grid place-items-center">
-        <span class="font-mono text-[11px] text-ink-faint bg-cream-50/80 px-2.5 py-1 rounded-md">product shot</span>
-      </div>
     </div>
 
     <div class="p-5 pt-4 flex-1 flex flex-col">
@@ -640,10 +648,7 @@ function card(p, i) {
         </div>
       </div>
 
-      <a href="${p.momoUrl || '#'}" target="${p.momoUrl ? '_blank' : '_self'}" rel="noopener noreferrer" class="mt-5 flex items-center justify-center gap-2 px-4 py-3 rounded-2xl font-extrabold text-[14px] transition active:scale-[.98] ${i===0?'bg-teal text-white hover:bg-teal-600':'bg-cream-100 text-ink hover:bg-cream-200 border border-cream-200'}">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
-        ${p.momoUrl ? '立即購買' : '查看詳情'}
-      </a>
+      ${(()=>{ const b=getBuyInfo(p); return `<a href="${b.url}" target="_blank" rel="noopener noreferrer" class="mt-5 flex items-center justify-center gap-2 px-4 py-3 rounded-2xl font-extrabold text-[14px] transition active:scale-[.98] ${i===0?'bg-teal text-white hover:bg-teal-600':'bg-cream-100 text-ink hover:bg-cream-200 border border-cream-200'}"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>${b.label}</a>`; })()}
     </div>
   </article>`;
 }
@@ -673,7 +678,7 @@ function chatSection() {
       </div>
 
       <div class="px-4 pb-3 pt-1 flex flex-wrap gap-2 border-t border-cream-200/70">
-        ${['要更安靜的','預算再低一點','水箱大一點','給過敏體質用'].map(t=>`
+        ${['要更安靜的','預算再低一點','水箱大一點'].map(t=>`
           <button onclick="quickAsk('${t}')" class="px-3 py-1.5 rounded-full bg-cream-100 hover:bg-teal-50 hover:text-teal-700 text-[12.5px] font-bold text-ink-soft border border-cream-200 transition">${t}</button>`).join('')}
       </div>
       <form onsubmit="sendChat(event)" class="flex items-center gap-2 p-3 border-t border-cream-200">
