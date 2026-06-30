@@ -38,19 +38,19 @@ export async function curateReviews(
 
   const prompt = `你是一個幫消費者分析產品評價的助手。
 
-以下是網友在 Mobile01、Dcard 及 YouTube 討論「${product.name_tw}」或同品牌除濕機的標題與內容：
+以下是來自 Mobile01、Dcard、momo、PChome、Yahoo 購物、YouTube 等平台關於「${product.name_tw}」或同品牌除濕機的討論與買家評論：
 
 ${reviewBlock}
 
 請從以上資料中萃取有用資訊，回傳以下 JSON（只回 JSON，不加其他文字）：
 
 {
-  "pros": ["優點1（10-25字，標注來源如 PTT/Dcard/YouTube）", "優點2", "優點3"],
+  "pros": ["優點1（10-25字，可標注來源如 Mobile01/momo/Yahoo）", "優點2", "優點3"],
   "cons": ["缺點1（同上）", "缺點2"],
   "highlights": [
     {
-      "source": "Mobile01" 或 "Dcard" 或 "YouTube",
-      "quote": "引用原文或標題中最有參考價值的一段話（10-50字）",
+      "source": "Mobile01" 或 "Dcard" 或 "YouTube" 或 "momo" 或 "PChome" 或 "Yahoo",
+      "quote": "引用原文中最有參考價值的一段話（10-50字）",
       "sentiment": "positive" 或 "negative" 或 "neutral",
       "url": "對應的來源 URL"
     }
@@ -61,8 +61,8 @@ ${reviewBlock}
 規則：
 - pros/cons 最多各 3 項，沒有就空陣列
 - highlights 最多 3 則，盡量涵蓋不同來源
-- Mobile01 資料若摘要不完整，可用標題作為 quote
-- Dcard 有摘要的話優先引用摘要原文
+- momo/PChome/Yahoo 的評分資訊可作為 highlight（例如「評分 4.8/5，共 320 則評價」）
+- Mobile01/Dcard 有摘要的話優先引用摘要原文
 - 若評論內容與除濕機完全無關則忽略
 - overall_sentiment 根據整體傾向判斷，資料不足時用 "mixed"`
 

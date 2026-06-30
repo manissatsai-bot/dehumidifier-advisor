@@ -8,11 +8,12 @@ interface ReviewProduct {
   brand: string
   model_id: string
   name_tw: string
+  momo_url?: string
 }
 
 export async function POST(req: Request) {
   try {
-    const body = await req.json() as { product?: ReviewProduct & { modelId?: string; model?: string } }
+    const body = await req.json() as { product?: ReviewProduct & { modelId?: string; model?: string; momoUrl?: string } }
     const raw = body.product
     if (!raw?.id) return Response.json({ reviews: null })
     // Support both scoring.ts output shape (modelId/model) and direct Product shape (model_id/name_tw)
@@ -21,6 +22,7 @@ export async function POST(req: Request) {
       brand: raw.brand,
       model_id: raw.model_id ?? raw.modelId ?? '',
       name_tw: raw.name_tw ?? raw.model ?? '',
+      momo_url: raw.momo_url ?? raw.momoUrl ?? undefined,
     }
     if (!product.id) return Response.json({ reviews: null })
 

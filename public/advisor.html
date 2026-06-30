@@ -849,7 +849,7 @@ async function loadReviews(p) {
     const res = await fetch('/api/reviews', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ product: { id: p.id, brand: p.brand, modelId: p.modelId, model: p.model } }),
+      body: JSON.stringify({ product: { id: p.id, brand: p.brand, modelId: p.modelId, model: p.model, momoUrl: p.momoUrl } }),
     });
     const { reviews } = await res.json();
     const el = bodyEl();
@@ -869,9 +869,20 @@ async function loadReviews(p) {
     if (badge) badge.innerHTML = `<span class="${sc}">${sl}</span>`;
     const highlights = reviews.highlights?.slice(0, 2) ?? [];
     if (highlights.length > 0) {
+      const sourceBadge = s => {
+        const map = {
+          'Mobile01': 'bg-blue-50 text-blue-700',
+          'Dcard':    'bg-green-50 text-green-700',
+          'momo':     'bg-red-50 text-red-700',
+          'PChome':   'bg-sky-50 text-sky-700',
+          'Yahoo':    'bg-purple-50 text-purple-700',
+          'YouTube':  'bg-red-50 text-red-600',
+        };
+        return `<span class="inline-block px-1.5 py-0.5 rounded text-[10px] mr-1 font-bold not-italic ${map[s] || 'bg-cream-100 text-ink-faint'}">${s}</span>`;
+      };
       el.innerHTML = highlights.map(h => `
         <div class="not-italic mb-2 last:mb-0 leading-snug">
-          <span class="inline-block px-1.5 py-0.5 rounded bg-cream-100 text-[10px] text-ink-faint mr-1 font-bold not-italic">${h.source}</span>
+          ${sourceBadge(h.source)}
           <a href="${h.url}" target="_blank" rel="noopener" class="text-ink-soft hover:text-teal transition-colors">「${h.quote}」</a>
         </div>`).join('');
     } else {

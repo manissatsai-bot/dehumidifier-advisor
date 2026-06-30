@@ -78,6 +78,7 @@ export interface PriceAnalysis {
   data_points: number
   percentile_score: number
   cold_start_note?: string
+  date_range?: { start: string; end: string }
 }
 
 export interface ScoredProduct extends Product {
@@ -95,7 +96,7 @@ export interface Decision {
   reasons: string[]
 }
 
-export type ReviewSource = 'PTT' | 'Dcard' | 'YouTube' | 'Mobile01'
+export type ReviewSource = 'PTT' | 'Dcard' | 'YouTube' | 'Mobile01' | 'momo' | 'PChome' | 'Yahoo'
 
 export interface RawReview {
   source: ReviewSource

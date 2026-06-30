@@ -4,6 +4,7 @@ interface ReviewInput {
   id: string
   brand: string
   model_id: string
+  momo_url?: string
 }
 
 const reviewCache = new Map<string, { data: RawReview[]; expires: number }>()
@@ -248,6 +249,189 @@ async function fetchYTComments(video: YTSearchItem, apiKey: string): Promise<Raw
   }))
 }
 
+// ── momo 買家評價 ─────────────────────────────────────────────────────────────
+
+function extractICode(momoUrl: string): string | null {
+  const m = momoUrl.match(/i_code=(\d+)/)
+  return m ? m[1] : null
+}
+
+async function fetchMomoReviews(momoUrl: string, modelId: string): Promise<RawReview[]> {
+  const iCode = extractICode(momoUrl)
+  if (!iCode) return []
+
+  // Fetch product detail page — momo JSP renders some reviews server-side
+  const url = `https://www.momoshop.com.tw/goods/GoodsDetail.jsp?i_code=${iCode}&ctype=1`
+  const html = await safeFetch(url, {
+    Referer: 'https://www.momoshop.com.tw/',
+    Cookie: 'isMobile=0; ACK=1',
+  })
+  if (!html) return []
+
+  const results: RawReview[] = []
+  const productUrl = `https://www.momoshop.com.tw/goods/GoodsDetail.jsp?i_code=${iCode}`
+
+  // Pattern 1: review item containers
+  const blockRe = /<(?:li|div)[^>]*class="[^"]*(?:reviewItem|review_item|comment)[^"]*"[^>]*>([\s\S]{20,600}?)<\/(?:li|div)>/gi
+  let m: RegExpExecArray | null
+  while ((m = blockRe.exec(html)) !== null && results.length < 5) {
+    const text = stripHtml(m[1]).trim()
+    if (text.length > 15 && !/登入|javascript|function/i.test(text)) {
+      results.push({ source: 'momo', title: 'momo 買家評價', snippet: text.slice(0, 300), url: productUrl, date: '' })
+    }
+  }
+
+  // Pattern 2: review content spans/paragraphs
+  if (results.length === 0) {
+    const contentRe = /<(?:p|span)[^>]*class="[^"]*(?:reviewContent|review-content|commentContent)[^"]*"[^>]*>([\s\S]{10,300}?)<\/(?:p|span)>/gi
+    while ((m = contentRe.exec(html)) !== null && results.length < 5) {
+      const text = stripHtml(m[1]).trim()
+      if (text.length > 10) {
+        results.push({ source: 'momo', title: 'momo 買家評價', snippet: text.slice(0, 300), url: productUrl, date: '' })
+      }
+    }
+  }
+
+  // Pattern 3: look for overall rating summary
+  if (results.length === 0) {
+    const ratingRe = /class="[^"]*(?:star|rating|score)[^"]*"[^>]*>[\s\S]{0,60}?([\d.]+)\s*[\/分]/i
+    const rm = html.match(ratingRe)
+    if (rm) {
+      const countMatch = html.match(/共\s*(\d+)\s*則|(\d+)\s*則評[價論]/)
+      const count = countMatch ? (countMatch[1] ?? countMatch[2]) : ''
+      results.push({
+        source: 'momo', title: 'momo 商品評分', url: productUrl, date: '',
+        snippet: `momo 商品評分 ${rm[1]} 分${count ? `，共 ${count} 則買家評價` : ''}`,
+      })
+    }
+  }
+
+  console.log(`[momo] i_code=${iCode} reviews=${results.length}`)
+  return results
+}
+
+// ── PChome 24h ──────────────────────────────────────────────────────────────
+
+async function searchPChomeReviews(modelId: string): Promise<RawReview[]> {
+  // PChome public search API (used by their own site)
+  const url = `https://ecshweb.pchome.com.tw/search/v4.3/all/results?q=${encodeURIComponent(modelId)}&page=1&sort=sale/dc`
+  const json = await safeFetch(url, {
+    Referer: 'https://24h.pchome.com.tw/',
+    Accept: 'application/json, text/plain, */*',
+    Origin: 'https://24h.pchome.com.tw',
+  })
+  if (!json) return []
+
+  try {
+    const data = JSON.parse(json) as {
+      Prods?: Array<{ Id?: string; Name?: string; Rating?: number; Rtype?: string; Price?: { M?: number } }>
+    }
+    const prods = data?.Prods ?? []
+    const results: RawReview[] = []
+
+    for (const p of prods.slice(0, 6)) {
+      const name = p?.Name ?? ''
+      const id = p?.Id ?? ''
+      const rating = p?.Rating
+      if (!name || !id) continue
+      if (!/除濕/i.test(name)) continue
+      results.push({
+        source: 'PChome',
+        title: name,
+        snippet: rating
+          ? `PChome 評分 ${rating} 分（5 分滿分）`
+          : 'PChome 有售',
+        url: `https://24h.pchome.com.tw/prod/${id}`,
+        date: '',
+        extra: { likeCount: rating ? Math.round(rating) : 0 },
+      })
+      if (results.length >= 2) break
+    }
+    console.log(`[PChome] modelId=${modelId} results=${results.length}`)
+    return results
+  } catch {
+    return []
+  }
+}
+
+// ── Yahoo 購物中心 ─────────────────────────────────────────────────────────────
+
+async function searchYahooShopping(modelId: string, brandTW: string): Promise<RawReview[]> {
+  const query = `${modelId} 除濕機`
+  const url = `https://tw.buy.yahoo.com/search/product?p=${encodeURIComponent(query)}`
+  const html = await safeFetch(url, {
+    Referer: 'https://tw.buy.yahoo.com/',
+    Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+  })
+  if (!html) return []
+
+  // Yahoo Shopping (Next.js) embeds page data in __NEXT_DATA__
+  const nextDataMatch = html.match(/<script id="__NEXT_DATA__"[^>]*>([\s\S]*?)<\/script>/)
+  if (nextDataMatch) {
+    try {
+      const data = JSON.parse(nextDataMatch[1]) as Record<string, unknown>
+      // Navigate different possible data shapes
+      const pageProps = (data?.props as Record<string, unknown>)?.pageProps as Record<string, unknown> | undefined
+      const items: unknown[] =
+        (pageProps?.searchResult as Record<string, unknown[]> | undefined)?.products ??
+        (pageProps?.items as unknown[]) ??
+        (pageProps?.productList as unknown[]) ??
+        []
+
+      const results: RawReview[] = []
+      for (const item of items.slice(0, 6)) {
+        const p = item as Record<string, unknown>
+        const title = (p?.name ?? p?.title ?? '') as string
+        const rating = p?.rating ?? p?.ratingScore ?? p?.avgRating
+        const reviewCount = Number(p?.reviewCount ?? p?.commentCount ?? 0)
+        const rawUrl = (p?.url ?? p?.pdUrl ?? p?.productUrl ?? '') as string
+        if (!title || !/除濕/i.test(title)) continue
+        const productUrl = rawUrl.startsWith('http') ? rawUrl : `https://tw.buy.yahoo.com${rawUrl}`
+        results.push({
+          source: 'Yahoo',
+          title,
+          snippet: rating
+            ? `Yahoo 購物評分 ${rating}/5${reviewCount > 0 ? `，${reviewCount} 則評價` : ''}`
+            : 'Yahoo 購物中心有售',
+          url: productUrl,
+          date: '',
+          extra: { likeCount: reviewCount },
+        })
+        if (results.length >= 2) break
+      }
+      if (results.length > 0) {
+        console.log(`[Yahoo] __NEXT_DATA__ results=${results.length}`)
+        return results
+      }
+    } catch { /* fall through to HTML parse */ }
+  }
+
+  // Fallback: parse HTML for product blocks with ratings
+  const results: RawReview[] = []
+  const blockRe = /<(?:li|div|article)[^>]*class="[^"]*(?:product-item|pditem|item-block)[^"]*"[^>]*>([\s\S]{30,800}?)<\/(?:li|div|article)>/gi
+  let m: RegExpExecArray | null
+  while ((m = blockRe.exec(html)) !== null && results.length < 2) {
+    const block = m[1]
+    if (!/除濕/.test(block)) continue
+    const titleMatch = block.match(/title="([^"]{5,80})"/) ?? block.match(/<[^>]*class="[^"]*(?:name|title)[^"]*"[^>]*>([^<]{5,80})</)
+    if (!titleMatch) continue
+    const urlMatch = block.match(/href="([^"]+)"/)
+    const ratingMatch = block.match(/(\d+(?:\.\d+)?)\s*[\/分]/)
+    const countMatch = block.match(/(\d+)\s*則/)
+    results.push({
+      source: 'Yahoo',
+      title: titleMatch[1],
+      snippet: ratingMatch
+        ? `Yahoo 評分 ${ratingMatch[1]}${countMatch ? `，${countMatch[1]} 則評價` : ''}`
+        : 'Yahoo 購物中心有售',
+      url: urlMatch ? `https://tw.buy.yahoo.com${urlMatch[1]}` : url,
+      date: '',
+    })
+  }
+  console.log(`[Yahoo] HTML fallback results=${results.length}`)
+  return results
+}
+
 // ── Main export ───────────────────────────────────────────────────────────────
 export async function fetchProductReviews(product: ReviewInput): Promise<RawReview[]> {
   const cached = reviewCache.get(product.id)
@@ -259,12 +443,19 @@ export async function fetchProductReviews(product: ReviewInput): Promise<RawRevi
 
   const youtubeKey = process.env.YOUTUBE_API_KEY
 
-  // Mobile01 + Dcard: search by brand (more discussed than specific model IDs)
   const tasks = [
+    // Mobile01: brand searches + model-specific search
     searchMobile01(`${brandTW} 除濕機 推薦`),
     searchMobile01(`${brandTW} 除濕機 開箱`),
+    searchMobile01(`${product.model_id} 除濕機`),
+    // Dcard
     searchDcard(`${brandTW} 除濕機 推薦`),
     searchDcard(`${product.model_id} 除濕機`),
+    // Shopping platform buyer reviews
+    ...(product.momo_url ? [fetchMomoReviews(product.momo_url, product.model_id)] : []),
+    searchPChomeReviews(product.model_id),
+    searchYahooShopping(product.model_id, brandTW),
+    // YouTube (optional)
     ...(youtubeKey ? [
       searchYouTube(`${product.model_id} 除濕機 開箱評測`, youtubeKey),
       searchYouTube(`${brandTW} 除濕機 推薦 ${new Date().getFullYear()}`, youtubeKey),
@@ -288,7 +479,9 @@ export async function fetchProductReviews(product: ReviewInput): Promise<RawRevi
     }
   }
 
-  console.log(`[reviews] ${product.model_id}: Mobile01=${all.filter(r=>r.source==='Mobile01').length} Dcard=${all.filter(r=>r.source==='Dcard').length} YT=${all.filter(r=>r.source==='YouTube').length} total=${all.length}`)
+  const counts = ['Mobile01','Dcard','YouTube','momo','PChome','Yahoo']
+    .map(s => `${s}=${all.filter(r=>r.source===s).length}`).join(' ')
+  console.log(`[reviews] ${product.model_id}: ${counts} total=${all.length}`)
   reviewCache.set(product.id, { data: all, expires: Date.now() + CACHE_TTL })
   return all
 }
