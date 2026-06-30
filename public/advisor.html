@@ -569,19 +569,28 @@ function scoreBar(label, val, color) {
   </div>`;
 }
 
-function getBuyInfo(p) {
-  const q = encodeURIComponent((p.brand ? p.brand + ' ' : '') + p.model);
-  if (p.momoUrl) return { url: p.momoUrl, label: '立即購買 · momo', external: true };
-  const pchomeUrl = (p.platform_urls || {}).PChome;
-  if (pchomeUrl) return { url: pchomeUrl, label: '立即購買 · PChome', external: true };
-  const shopeeUrl = (p.platform_urls || {}).Shopee;
-  if (shopeeUrl) return { url: shopeeUrl, label: '立即購買 · 蝦皮', external: true };
-  // 依序嘗試 momo 搜尋、PChome 搜尋、蝦皮搜尋，這裡直接給 Google
-  return {
-    url: `https://www.google.com/search?q=${encodeURIComponent((p.brand || '') + ' ' + p.model + ' 除濕機 購買')}`,
-    label: '搜尋購買連結',
-    external: true,
-  };
+function getBuyLinks(p) {
+  // 搜尋關鍵字：優先用 modelId（最精準），fallback 用品牌+型號名
+  const keyword = p.modelId || ((p.brand || '') + ' ' + p.model);
+  const kw = encodeURIComponent(keyword);
+  const kwName = encodeURIComponent(p.model.slice(0, 25));
+  return [
+    {
+      label: 'momo',
+      url: p.momoUrl || `https://www.momoshop.com.tw/search/searchShop.jsp?keyword=${kw}&searchType=1&ctype=1`,
+      color: 'bg-[#e31837] hover:bg-[#c0142f]',
+    },
+    {
+      label: 'PChome',
+      url: (p.platform_urls || {}).PChome || `https://24h.pchome.com.tw/search/?q=${kw}`,
+      color: 'bg-[#0066cc] hover:bg-[#0055aa]',
+    },
+    {
+      label: '蝦皮',
+      url: (p.platform_urls || {}).Shopee || `https://shopee.tw/search?keyword=${kwName}`,
+      color: 'bg-[#ee4d2d] hover:bg-[#d44425]',
+    },
+  ];
 }
 
 function card(p, i) {
@@ -648,7 +657,14 @@ function card(p, i) {
         </div>
       </div>
 
-      ${(()=>{ const b=getBuyInfo(p); return `<a href="${b.url}" target="_blank" rel="noopener noreferrer" class="mt-5 flex items-center justify-center gap-2 px-4 py-3 rounded-2xl font-extrabold text-[14px] transition active:scale-[.98] ${i===0?'bg-teal text-white hover:bg-teal-600':'bg-cream-100 text-ink hover:bg-cream-200 border border-cream-200'}"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>${b.label}</a>`; })()}
+      <div class="mt-5 grid grid-cols-3 gap-2">
+        ${getBuyLinks(p).map(b=>`
+          <a href="${b.url}" target="_blank" rel="noopener noreferrer"
+             class="flex items-center justify-center gap-1.5 py-2.5 rounded-xl font-extrabold text-[13px] text-white transition active:scale-[.97] ${b.color}">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
+            ${b.label}
+          </a>`).join('')}
+      </div>
     </div>
   </article>`;
 }

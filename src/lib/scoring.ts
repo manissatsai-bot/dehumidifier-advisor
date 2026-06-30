@@ -135,6 +135,7 @@ export function scoreAndRank(c: Conditions) {
       id: p.id,
       brand: p.brand,
       model: p.name_tw,
+      modelId: p.model_id,
       capacity: p.capacity_liters,
       area: p.coverage_ping,
       tank: p.tank_liters,
