@@ -128,6 +128,8 @@ export function scoreAndRank(c: Conditions) {
 
     const score10 = clamp((fit * 0.34 + budgetFit * 0.2 + purposeFit * 0.22 + prio * 0.24) * 10, 0, 10)
 
+    const momoUrl = (p.platform_urls as Record<string, string> | undefined)?.momo ?? null
+
     return {
       id: p.id,
       brand: p.brand,
@@ -138,6 +140,7 @@ export function scoreAndRank(c: Conditions) {
       energy: p.energy_label,
       noise: p.noise_db,
       price: p.current_price,
+      momoUrl,
       features: [
         ...(p.energy_label === '一級' ? ['energy'] : []),
         ...(p.noise_db !== null && p.noise_db <= 40 ? ['quiet'] : []),
