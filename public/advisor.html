@@ -354,22 +354,7 @@ function viewLanding() {
         </div>
       </div>
 
-      <div class="relative">
-        <div class="absolute -inset-4 bg-gradient-to-br from-teal-50 to-clay-50 rounded-[40px] blur-xl opacity-70"></div>
-        <div class="relative bg-cream-50 rounded-[32px] p-6 shadow-card border border-cream-200">
-          <div class="ph-stripe rounded-2xl h-44 grid place-items-center mb-5">
-            <span class="font-mono text-[12px] text-ink-faint bg-cream-50/80 px-3 py-1.5 rounded-lg">product shot · 除濕機情境照</span>
-          </div>
-          <div class="flex items-center justify-between mb-3">
-            <div>
-              <p class="font-extrabold text-ink text-[15px]">本週熱門推薦</p>
-              <p class="text-[12px] text-ink-faint">適居 ComfortDry C180</p>
-            </div>
-            <span class="px-2.5 py-1 rounded-lg bg-teal text-white font-black text-[14px]">9.2</span>
-          </div>
-          ${miniBar('除濕力', 60)}${miniBar('能效', 94)}${miniBar('靜音', 88)}
-        </div>
-      </div>
+      <div class="hidden"></div>
     </div>
   </section>`;
 }
@@ -855,7 +840,7 @@ async function loadReviews(p) {
     const el = bodyEl();
     if (!el) return;
     if (!reviews || (!reviews.highlights?.length && !reviews.pros?.length)) {
-      el.innerHTML = '<span class="not-italic text-ink-faint">尚無網路評價資料</span>';
+      el.innerHTML = '<span class="not-italic text-ink-faint">暫時未查詢到相關評價</span>';
       return;
     }
     const sentMap = {
@@ -892,7 +877,7 @@ async function loadReviews(p) {
     }
   } catch {
     const el = bodyEl();
-    if (el) el.innerHTML = '<span class="not-italic text-ink-faint">評價載入失敗</span>';
+    if (el) el.innerHTML = '<span class="not-italic text-ink-faint">暫時未查詢到相關評價</span>';
   }
 }
 

@@ -333,17 +333,15 @@ async function searchPChomeReviews(modelId: string): Promise<RawReview[]> {
       const name = p?.Name ?? ''
       const id = p?.Id ?? ''
       const rating = p?.Rating
-      if (!name || !id) continue
+      if (!name || !id || !rating) continue  // skip entries without rating data
       if (!/除濕/i.test(name)) continue
       results.push({
         source: 'PChome',
         title: name,
-        snippet: rating
-          ? `PChome 評分 ${rating} 分（5 分滿分）`
-          : 'PChome 有售',
+        snippet: `PChome 評分 ${rating} 分（5 分滿分）`,
         url: `https://24h.pchome.com.tw/prod/${id}`,
         date: '',
-        extra: { likeCount: rating ? Math.round(rating) : 0 },
+        extra: { likeCount: Math.round(Number(rating)) },
       })
       if (results.length >= 2) break
     }
