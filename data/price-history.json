@@ -74,6 +74,11 @@
       "price": 20495,
       "recorded_at": "2026-06-21",
       "platform": "momo"
+    },
+    {
+      "price": 19330,
+      "recorded_at": "2026-06-30",
+      "platform": "momo"
     }
   ],
   "p008": [
@@ -120,6 +125,11 @@
     {
       "price": 6355,
       "recorded_at": "2026-06-21",
+      "platform": "momo"
+    },
+    {
+      "price": 6355,
+      "recorded_at": "2026-06-30",
       "platform": "momo"
     }
   ],
@@ -173,12 +183,22 @@
       "price": 8791,
       "recorded_at": "2026-06-21",
       "platform": "momo"
+    },
+    {
+      "price": 8991,
+      "recorded_at": "2026-06-30",
+      "platform": "momo"
     }
   ],
   "s051": [
     {
       "price": 3616,
       "recorded_at": "2026-06-17",
+      "platform": "momo"
+    },
+    {
+      "price": 2720,
+      "recorded_at": "2026-06-30",
       "platform": "momo"
     }
   ],
@@ -187,12 +207,22 @@
       "price": 11618,
       "recorded_at": "2026-06-17",
       "platform": "momo"
+    },
+    {
+      "price": 11990,
+      "recorded_at": "2026-06-30",
+      "platform": "momo"
     }
   ],
   "s053": [
     {
       "price": 8499,
       "recorded_at": "2026-06-17",
+      "platform": "momo"
+    },
+    {
+      "price": 4390,
+      "recorded_at": "2026-06-30",
       "platform": "momo"
     }
   ],
@@ -201,12 +231,22 @@
       "price": 6388,
       "recorded_at": "2026-06-17",
       "platform": "momo"
+    },
+    {
+      "price": 3588,
+      "recorded_at": "2026-06-30",
+      "platform": "momo"
     }
   ],
   "s055": [
     {
       "price": 9388,
       "recorded_at": "2026-06-17",
+      "platform": "momo"
+    },
+    {
+      "price": 3588,
+      "recorded_at": "2026-06-30",
       "platform": "momo"
     }
   ],
@@ -215,12 +255,22 @@
       "price": 12490,
       "recorded_at": "2026-06-17",
       "platform": "momo"
+    },
+    {
+      "price": 4390,
+      "recorded_at": "2026-06-30",
+      "platform": "momo"
     }
   ],
   "s057": [
     {
       "price": 3590,
       "recorded_at": "2026-06-17",
+      "platform": "momo"
+    },
+    {
+      "price": 3700,
+      "recorded_at": "2026-06-30",
       "platform": "momo"
     }
   ],
@@ -229,12 +279,22 @@
       "price": 10013,
       "recorded_at": "2026-06-17",
       "platform": "momo"
+    },
+    {
+      "price": 4390,
+      "recorded_at": "2026-06-30",
+      "platform": "momo"
     }
   ],
   "s059": [
     {
       "price": 7990,
       "recorded_at": "2026-06-17",
+      "platform": "momo"
+    },
+    {
+      "price": 7990,
+      "recorded_at": "2026-06-30",
       "platform": "momo"
     }
   ],
@@ -243,12 +303,22 @@
       "price": 4380,
       "recorded_at": "2026-06-17",
       "platform": "momo"
+    },
+    {
+      "price": 4390,
+      "recorded_at": "2026-06-30",
+      "platform": "momo"
     }
   ],
   "s061": [
     {
       "price": 11080,
       "recorded_at": "2026-06-17",
+      "platform": "momo"
+    },
+    {
+      "price": 4390,
+      "recorded_at": "2026-06-30",
       "platform": "momo"
     }
   ],
@@ -257,12 +327,22 @@
       "price": 18183,
       "recorded_at": "2026-06-17",
       "platform": "momo"
+    },
+    {
+      "price": 4390,
+      "recorded_at": "2026-06-30",
+      "platform": "momo"
     }
   ],
   "s063": [
     {
       "price": 19900,
       "recorded_at": "2026-06-17",
+      "platform": "momo"
+    },
+    {
+      "price": 18900,
+      "recorded_at": "2026-06-30",
       "platform": "momo"
     }
   ],
@@ -271,12 +351,22 @@
       "price": 3710,
       "recorded_at": "2026-06-17",
       "platform": "momo"
+    },
+    {
+      "price": 4390,
+      "recorded_at": "2026-06-30",
+      "platform": "momo"
     }
   ],
   "s065": [
     {
       "price": 14900,
       "recorded_at": "2026-06-17",
+      "platform": "momo"
+    },
+    {
+      "price": 3588,
+      "recorded_at": "2026-06-30",
       "platform": "momo"
     }
   ],
@@ -285,12 +375,22 @@
       "price": 24015,
       "recorded_at": "2026-06-17",
       "platform": "momo"
+    },
+    {
+      "price": 4390,
+      "recorded_at": "2026-06-30",
+      "platform": "momo"
     }
   ],
   "s067": [
     {
       "price": 28662,
       "recorded_at": "2026-06-17",
+      "platform": "momo"
+    },
+    {
+      "price": 4390,
+      "recorded_at": "2026-06-30",
       "platform": "momo"
     }
   ],
@@ -299,12 +399,22 @@
       "price": 5799,
       "recorded_at": "2026-06-17",
       "platform": "momo"
+    },
+    {
+      "price": 4390,
+      "recorded_at": "2026-06-30",
+      "platform": "momo"
     }
   ],
   "s069": [
     {
       "price": 9319,
       "recorded_at": "2026-06-17",
+      "platform": "momo"
+    },
+    {
+      "price": 4390,
+      "recorded_at": "2026-06-30",
       "platform": "momo"
     }
   ],
@@ -313,12 +423,22 @@
       "price": 8263,
       "recorded_at": "2026-06-17",
       "platform": "momo"
+    },
+    {
+      "price": 8260,
+      "recorded_at": "2026-06-30",
+      "platform": "momo"
     }
   ],
   "s071": [
     {
       "price": 5095,
       "recorded_at": "2026-06-17",
+      "platform": "momo"
+    },
+    {
+      "price": 6918,
+      "recorded_at": "2026-06-30",
       "platform": "momo"
     }
   ],
@@ -327,12 +447,22 @@
       "price": 23672,
       "recorded_at": "2026-06-17",
       "platform": "momo"
+    },
+    {
+      "price": 12118,
+      "recorded_at": "2026-06-30",
+      "platform": "momo"
     }
   ],
   "s073": [
     {
       "price": 9671,
       "recorded_at": "2026-06-17",
+      "platform": "momo"
+    },
+    {
+      "price": 4390,
+      "recorded_at": "2026-06-30",
       "platform": "momo"
     }
   ],
@@ -341,12 +471,22 @@
       "price": 12169,
       "recorded_at": "2026-06-17",
       "platform": "momo"
+    },
+    {
+      "price": 4390,
+      "recorded_at": "2026-06-30",
+      "platform": "momo"
     }
   ],
   "s075": [
     {
       "price": 10741,
       "recorded_at": "2026-06-17",
+      "platform": "momo"
+    },
+    {
+      "price": 10991,
+      "recorded_at": "2026-06-30",
       "platform": "momo"
     }
   ],
@@ -355,12 +495,22 @@
       "price": 7031,
       "recorded_at": "2026-06-17",
       "platform": "momo"
+    },
+    {
+      "price": 4390,
+      "recorded_at": "2026-06-30",
+      "platform": "momo"
     }
   ],
   "s077": [
     {
       "price": 8791,
       "recorded_at": "2026-06-17",
+      "platform": "momo"
+    },
+    {
+      "price": 4390,
+      "recorded_at": "2026-06-30",
       "platform": "momo"
     }
   ],
@@ -369,12 +519,22 @@
       "price": 13717,
       "recorded_at": "2026-06-17",
       "platform": "momo"
+    },
+    {
+      "price": 14900,
+      "recorded_at": "2026-06-30",
+      "platform": "momo"
     }
   ],
   "s079": [
     {
       "price": 16417,
       "recorded_at": "2026-06-17",
+      "platform": "momo"
+    },
+    {
+      "price": 4390,
+      "recorded_at": "2026-06-30",
       "platform": "momo"
     }
   ],
@@ -383,12 +543,22 @@
       "price": 7999,
       "recorded_at": "2026-06-17",
       "platform": "momo"
+    },
+    {
+      "price": 4390,
+      "recorded_at": "2026-06-30",
+      "platform": "momo"
     }
   ],
   "s081": [
     {
       "price": 5990,
       "recorded_at": "2026-06-17",
+      "platform": "momo"
+    },
+    {
+      "price": 4390,
+      "recorded_at": "2026-06-30",
       "platform": "momo"
     }
   ],
@@ -397,12 +567,22 @@
       "price": 5990,
       "recorded_at": "2026-06-17",
       "platform": "momo"
+    },
+    {
+      "price": 4390,
+      "recorded_at": "2026-06-30",
+      "platform": "momo"
     }
   ],
   "s083": [
     {
       "price": 5688,
       "recorded_at": "2026-06-17",
+      "platform": "momo"
+    },
+    {
+      "price": 3588,
+      "recorded_at": "2026-06-30",
       "platform": "momo"
     }
   ],
@@ -411,12 +591,22 @@
       "price": 21900,
       "recorded_at": "2026-06-17",
       "platform": "momo"
+    },
+    {
+      "price": 4390,
+      "recorded_at": "2026-06-30",
+      "platform": "momo"
     }
   ],
   "s085": [
     {
       "price": 18900,
       "recorded_at": "2026-06-17",
+      "platform": "momo"
+    },
+    {
+      "price": 19710,
+      "recorded_at": "2026-06-30",
       "platform": "momo"
     }
   ],
@@ -425,12 +615,22 @@
       "price": 8999,
       "recorded_at": "2026-06-17",
       "platform": "momo"
+    },
+    {
+      "price": 8111,
+      "recorded_at": "2026-06-30",
+      "platform": "momo"
     }
   ],
   "s087": [
     {
       "price": 15900,
       "recorded_at": "2026-06-17",
+      "platform": "momo"
+    },
+    {
+      "price": 14900,
+      "recorded_at": "2026-06-30",
       "platform": "momo"
     }
   ],
@@ -439,12 +639,22 @@
       "price": 7230,
       "recorded_at": "2026-06-17",
       "platform": "momo"
+    },
+    {
+      "price": 4390,
+      "recorded_at": "2026-06-30",
+      "platform": "momo"
     }
   ],
   "s089": [
     {
       "price": 9990,
       "recorded_at": "2026-06-17",
+      "platform": "momo"
+    },
+    {
+      "price": 8111,
+      "recorded_at": "2026-06-30",
       "platform": "momo"
     }
   ],
@@ -453,12 +663,22 @@
       "price": 15752,
       "recorded_at": "2026-06-17",
       "platform": "momo"
+    },
+    {
+      "price": 14900,
+      "recorded_at": "2026-06-30",
+      "platform": "momo"
     }
   ],
   "s091": [
     {
       "price": 14900,
       "recorded_at": "2026-06-17",
+      "platform": "momo"
+    },
+    {
+      "price": 4390,
+      "recorded_at": "2026-06-30",
       "platform": "momo"
     }
   ],
@@ -467,12 +687,22 @@
       "price": 23854,
       "recorded_at": "2026-06-17",
       "platform": "momo"
+    },
+    {
+      "price": 25110,
+      "recorded_at": "2026-06-30",
+      "platform": "momo"
     }
   ],
   "s093": [
     {
       "price": 27192,
       "recorded_at": "2026-06-17",
+      "platform": "momo"
+    },
+    {
+      "price": 4390,
+      "recorded_at": "2026-06-30",
       "platform": "momo"
     }
   ],
@@ -481,12 +711,22 @@
       "price": 31549,
       "recorded_at": "2026-06-17",
       "platform": "momo"
+    },
+    {
+      "price": 4390,
+      "recorded_at": "2026-06-30",
+      "platform": "momo"
     }
   ],
   "s095": [
     {
       "price": 24552,
       "recorded_at": "2026-06-17",
+      "platform": "momo"
+    },
+    {
+      "price": 25110,
+      "recorded_at": "2026-06-30",
       "platform": "momo"
     }
   ],
@@ -495,12 +735,22 @@
       "price": 28662,
       "recorded_at": "2026-06-17",
       "platform": "momo"
+    },
+    {
+      "price": 4390,
+      "recorded_at": "2026-06-30",
+      "platform": "momo"
     }
   ],
   "s097": [
     {
       "price": 7876,
       "recorded_at": "2026-06-17",
+      "platform": "momo"
+    },
+    {
+      "price": 4390,
+      "recorded_at": "2026-06-30",
       "platform": "momo"
     }
   ],
@@ -509,12 +759,22 @@
       "price": 14280,
       "recorded_at": "2026-06-17",
       "platform": "momo"
+    },
+    {
+      "price": 4390,
+      "recorded_at": "2026-06-30",
+      "platform": "momo"
     }
   ],
   "s099": [
     {
       "price": 4727,
       "recorded_at": "2026-06-17",
+      "platform": "momo"
+    },
+    {
+      "price": 4390,
+      "recorded_at": "2026-06-30",
       "platform": "momo"
     }
   ]

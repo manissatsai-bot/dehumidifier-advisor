@@ -67,7 +67,8 @@ const BRAND_TW: Record<string, string> = {
 }
 
 async function searchMomoPrice(page: import('playwright').Page, product: Product): Promise<{ price: number; url: string } | null> {
-  const brandTw = BRAND_TW[product.brand] ?? product.brand
+  // momo 產品頁是 JS 渲染，JSON-LD 格式不一致，改為統一用搜尋結果頁抓價（格式穩定）
+  const brandTw = BRAND_TW[product.brand] ?? (product.brand as string) ?? ''
   const strategies = [
     product.model_id,
     `${brandTw} ${product.model_id}`,
@@ -89,9 +90,9 @@ async function main() {
   const priceHistory = load<Record<string, PricePoint[]>>('price-history.json')
   const today = new Date().toISOString().slice(0, 10)
 
-  // 只處理估算價格的商品
-  const targets = products.filter((p: Product) => p.price_source === 'estimate')
-  console.log(`=== 更新 ${targets.length} 台 p0xx 商品價格 ===\n`)
+  // 更新所有商品（有 platform_urls.momo 的直接用，其他用搜尋）
+  const targets = products
+  console.log(`=== 更新全部 ${targets.length} 台商品價格 ===\n`)
 
   const browser = await chromium.launch({ headless: true, args: ['--no-sandbox'] })
   const page = await browser.newPage()
